@@ -74,6 +74,8 @@ export const useProducts = () =>
       return (data ?? []).map((p) => ({
         ...p,
         agent_links: (p.agent_links ?? {}) as Record<string, string>,
+        sizes: (p.sizes ?? []) as string[],
+        images: (p.images ?? []) as string[],
       })) as Product[];
     },
   });
