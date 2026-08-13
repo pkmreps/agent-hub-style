@@ -15,6 +15,12 @@ export function ProductCard({
   const [dislikes, setDislikes] = useState(product.dislikes);
   const [wish, setWish] = useState(false);
 
+  const gallery = [product.image_url, ...(product.images ?? [])].filter(
+    (u): u is string => Boolean(u),
+  );
+  const [active, setActive] = useState(0);
+  const current = gallery[active] ?? null;
+
   const vote = async (kind: "likes" | "dislikes") => {
     const next = kind === "likes" ? likes + 1 : dislikes + 1;
     if (kind === "likes") setLikes(next);
@@ -29,9 +35,9 @@ export function ProductCard({
   return (
     <article className="group overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-1 hover:border-primary/60 hover:glow-ring">
       <div className="relative aspect-square overflow-hidden bg-secondary">
-        {product.image_url ? (
+        {current ? (
           <img
-            src={product.image_url}
+            src={current}
             alt={product.title}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -76,6 +82,34 @@ export function ProductCard({
 
       <div className="space-y-3 p-4">
         <h3 className="line-clamp-2 text-sm font-semibold">{product.title}</h3>
+        {gallery.length > 1 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {gallery.map((url, i) => (
+              <button
+                key={`${url}-${i}`}
+                onClick={() => setActive(i)}
+                aria-label={`Kolorystyka ${i + 1}`}
+                className={`h-9 w-9 overflow-hidden rounded-md border ${i === active ? "border-primary glow-ring" : "border-border"}`}
+              >
+                <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {product.sizes?.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {product.sizes.map((size) => (
+              <span
+                key={size}
+                className="rounded-md border border-brand-teal/40 bg-secondary px-2 py-0.5 text-[11px] font-semibold text-brand-cyan"
+              >
+                {size}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-1.5">
           <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
             {product.category || "Inne"}
