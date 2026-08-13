@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import {
+  parseList,
+  safeStorage,
   saveSetting,
+  sha256Hex,
   useAgents,
   useCategories,
   useGuideSteps,
@@ -12,6 +15,9 @@ import {
   useSettings,
   type Product,
 } from "@/lib/store";
+
+const DEFAULT_ADMIN_USER = "replikaenjoyeradmin";
+const DEFAULT_ADMIN_HASH = "b5bba22a04898d7e80f17440b9f3feb2840886a1d95cfddd4f8323ba974ec3cd";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -38,13 +44,25 @@ function AdminPage() {
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
-  const [tab, setTab] = useState<"branding" | "agents" | "categories" | "products" | "guide">(
-    "branding",
-  );
+  const [tab, setTab] = useState<
+    "branding" | "agents" | "categories" | "products" | "guide" | "security"
+  >("branding");
+  const { data: settings } = useSettings();
 
   useEffect(() => {
-    if (sessionStorage.getItem("pkmr_admin") === "1") setAuthed(true);
+    if (safeStorage.get("pkmr_admin") === "1") setAuthed(true);
   }, []);
+
+  const login = async () => {
+    setErr("");
+    const expectedUser = settings?.["admin_username"] || DEFAULT_ADMIN_USER;
+    const expectedHash = settings?.["admin_password_hash"] || DEFAULT_ADMIN_HASH;
+    const hash = await sha256Hex(pass);
+    if (user.trim() === expectedUser && hash === expectedHash) {
+      safeStorage.set("pkmr_admin", "1");
+      setAuthed(true);
+    } else setErr("Nieprawidłowe dane logowania.");
+  };
 
   if (!authed) {
     return (
@@ -52,10 +70,7 @@ function AdminPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (user === "admin" && (pass === "admin" || pass === "admin123")) {
-              sessionStorage.setItem("pkmr_admin", "1");
-              setAuthed(true);
-            } else setErr("Nieprawidłowe dane logowania.");
+            void login();
           }}
           className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-surface p-8 glow-ring"
         >
@@ -63,6 +78,9 @@ function AdminPage() {
           <input
             className={input}
             placeholder="Login"
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="username"
             value={user}
             onChange={(e) => setUser(e.target.value)}
           />
@@ -70,6 +88,7 @@ function AdminPage() {
             className={input}
             type="password"
             placeholder="Hasło"
+            autoComplete="current-password"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
           />
@@ -86,6 +105,7 @@ function AdminPage() {
     ["categories", "Kategorie"],
     ["products", "Produkty"],
     ["guide", "Poradnik"],
+    ["security", "Bezpieczeństwo"],
   ] as const;
 
   return (
@@ -95,7 +115,7 @@ function AdminPage() {
         <button
           className={btnGhost}
           onClick={() => {
-            sessionStorage.removeItem("pkmr_admin");
+            safeStorage.remove("pkmr_admin");
             setAuthed(false);
           }}
         >
@@ -120,6 +140,7 @@ function AdminPage() {
       {tab === "categories" && <CategoriesTab />}
       {tab === "products" && <ProductsTab />}
       {tab === "guide" && <GuideTab />}
+      {tab === "security" && <SecurityTab />}
     </div>
   );
 }
@@ -348,6 +369,8 @@ function ProductsTab() {
     image_url: "",
     qc_url: "",
     quality: "Best",
+    sizes: "",
+    images: "",
     agent_links: {} as Record<string, string>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
@@ -361,6 +384,8 @@ function ProductsTab() {
       image_url: form.image_url,
       qc_url: form.qc_url,
       quality: form.quality,
+      sizes: parseList(form.sizes),
+      images: parseList(form.images),
       agent_links: form.agent_links,
     };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
@@ -377,6 +402,8 @@ function ProductsTab() {
     image_url: form.image_url || null,
     qc_url: form.qc_url || null,
     quality: form.quality,
+    sizes: parseList(form.sizes),
+    images: parseList(form.images),
     likes: 0,
     dislikes: 0,
     views: 0,
@@ -433,6 +460,18 @@ function ProductsTab() {
               placeholder="Link do zdjęć QC"
               value={form.qc_url ?? ""}
               onChange={(e) => setForm({ ...form, qc_url: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Rozmiary po przecinku (S, M, L, XL)"
+              value={form.sizes}
+              onChange={(e) => setForm({ ...form, sizes: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Dodatkowe zdjęcia / kolorystyki po przecinku (URL, URL)"
+              value={form.images}
+              onChange={(e) => setForm({ ...form, images: e.target.value })}
             />
           </div>
 
@@ -498,6 +537,8 @@ function ProductsTab() {
                     image_url: p.image_url ?? "",
                     qc_url: p.qc_url ?? "",
                     quality: p.quality,
+                    sizes: (p.sizes ?? []).join(", "),
+                    images: (p.images ?? []).join(", "),
                     agent_links: p.agent_links ?? {},
                   })
                 }
@@ -614,6 +655,106 @@ function GuideTab() {
             </li>
           ))}
         </ul>
+      </div>
+    </section>
+  );
+}
+
+function SecurityTab() {
+  const { data: settings } = useSettings();
+  const refresh = useRefresh();
+  const [username, setUsername] = useState("");
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (settings) setUsername(settings["admin_username"] || DEFAULT_ADMIN_USER);
+  }, [settings]);
+
+  const submit = async () => {
+    setMsg("");
+    setErr("");
+    const expectedHash = settings?.["admin_password_hash"] || DEFAULT_ADMIN_HASH;
+    if ((await sha256Hex(current)) !== expectedHash) {
+      setErr("Aktualne hasło jest nieprawidłowe.");
+      return;
+    }
+    if (!username.trim()) {
+      setErr("Login nie może być pusty.");
+      return;
+    }
+    if (next && next.length < 8) {
+      setErr("Nowe hasło musi mieć co najmniej 8 znaków.");
+      return;
+    }
+    if (next !== confirm) {
+      setErr("Nowe hasła nie są identyczne.");
+      return;
+    }
+    await saveSetting("admin_username", username.trim());
+    if (next) await saveSetting("admin_password_hash", await sha256Hex(next));
+    setCurrent("");
+    setNext("");
+    setConfirm("");
+    await refresh("settings");
+    setMsg("Dane logowania zostały zaktualizowane.");
+  };
+
+  return (
+    <section className="max-w-xl rounded-2xl border border-border bg-surface p-6">
+      <h2 className="mb-1 text-lg font-bold">Bezpieczeństwo / Konto</h2>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Zmień login i hasło do panelu. Zmiany zapisywane są w bazie danych.
+      </p>
+      <div className="space-y-3">
+        <label className="block text-xs font-semibold text-muted-foreground">
+          Login
+          <input
+            className={`${input} mt-1`}
+            value={username}
+            autoCapitalize="none"
+            autoCorrect="off"
+            onChange={(e) => setUsername(e.target.value)}
+          />
+        </label>
+        <label className="block text-xs font-semibold text-muted-foreground">
+          Aktualne hasło
+          <input
+            className={`${input} mt-1`}
+            type="password"
+            autoComplete="current-password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+          />
+        </label>
+        <label className="block text-xs font-semibold text-muted-foreground">
+          Nowe hasło (opcjonalnie)
+          <input
+            className={`${input} mt-1`}
+            type="password"
+            autoComplete="new-password"
+            value={next}
+            onChange={(e) => setNext(e.target.value)}
+          />
+        </label>
+        <label className="block text-xs font-semibold text-muted-foreground">
+          Powtórz nowe hasło
+          <input
+            className={`${input} mt-1`}
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+          />
+        </label>
+        {err ? <p className="text-xs text-destructive">{err}</p> : null}
+        {msg ? <p className="text-xs text-brand-cyan">{msg}</p> : null}
+        <button className={btn} onClick={() => void submit()}>
+          Zapisz dane logowania
+        </button>
       </div>
     </section>
   );
