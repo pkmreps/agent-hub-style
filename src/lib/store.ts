@@ -28,6 +28,8 @@ export type Product = {
   dislikes: number;
   views: number;
   agent_links: Record<string, string>;
+  sizes: string[];
+  images: string[];
 };
 
 export type GuideStep = {
