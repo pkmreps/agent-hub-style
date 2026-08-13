@@ -3,64 +3,41 @@ import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
 import { useAgents, useCategories, useProducts } from "@/lib/store";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/linki")({
   head: () => ({
     meta: [
-      { title: "Product Finder — PKMREPS Agent & QC Finds" },
+      { title: "Linki z TikToka — PKMREPS" },
       {
         name: "description",
-        content:
-          "Znajdź najlepsze findsy, sprawdź zdjęcia QC i kup przez Litbuy, Kakaobuy lub USFans.",
+        content: "Wszystkie linki do produktów z naszych filmów na TikToku, w podziale na kategorie.",
       },
-      { property: "og:title", content: "Product Finder — PKMREPS" },
+      { property: "og:title", content: "Linki z TikToka — PKMREPS" },
       {
         property: "og:description",
-        content: "Wyszukiwarka findsów z QC i bezpośrednimi linkami do agentów.",
+        content: "Produkty z TikToka z linkami do agentów i zdjęciami QC.",
       },
     ],
   }),
-  component: Index,
+  component: LinkiPage,
 });
 
-function Index() {
+function LinkiPage() {
   const { data: products } = useProducts();
   const { data: agents } = useAgents();
   const { data: categories } = useCategories();
-  const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
 
   const filtered = useMemo(
-    () =>
-      (products ?? []).filter(
-        (p) =>
-          p.title.toLowerCase().includes(q.toLowerCase()) && (cat === "" || p.category === cat),
-      ),
-    [products, q, cat],
+    () => (products ?? []).filter((p) => cat === "" || p.category === cat),
+    [products, cat],
   );
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <section className="mb-10 rounded-3xl border border-border bg-surface/60 p-8 text-center glow-ring">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary">
-          Agent &amp; QC Finds
-        </p>
-        <h1 className="mt-3 text-3xl font-black sm:text-5xl">
-          Znajdź swoje <span className="text-gradient-brand">najlepsze findsy</span>
-        </h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
-          Sprawdzone produkty, zdjęcia QC i bezpośrednie linki do zakupu przez Twojego agenta.
-        </p>
-        <div className="mx-auto mt-6 flex max-w-xl gap-2">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Szukaj produktu..."
-            className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm outline-none focus:border-primary focus:glow-ring"
-          />
-        </div>
-      </section>
-
-      <div className="mb-6 flex flex-wrap gap-2">
+      <h1 className="text-3xl font-black">
+        Linki z <span className="text-gradient-brand">TikToka</span>
+      </h1>
+      <div className="my-6 flex flex-wrap gap-2 border-b border-border pb-4">
         <button
           onClick={() => setCat("")}
           className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${cat === "" ? "border-primary text-primary glow-ring" : "border-border text-muted-foreground"}`}
@@ -80,7 +57,7 @@ function Index() {
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-border bg-surface p-10 text-center text-sm text-muted-foreground">
-          Brak produktów do wyświetlenia.
+          Brak produktów w tej kategorii.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

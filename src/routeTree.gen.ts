@@ -10,33 +10,91 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as LinkiRouteImport } from './routes/linki'
+import { Route as PoradnikRouteImport } from './routes/poradnik'
+import { Route as PromocjeRouteImport } from './routes/promocje'
+import { Route as SprzedawcyRouteImport } from './routes/sprzedawcy'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LinkiRoute = LinkiRouteImport.update({
+  id: '/linki',
+  path: '/linki',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoradnikRoute = PoradnikRouteImport.update({
+  id: '/poradnik',
+  path: '/poradnik',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromocjeRoute = PromocjeRouteImport.update({
+  id: '/promocje',
+  path: '/promocje',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SprzedawcyRoute = SprzedawcyRouteImport.update({
+  id: '/sprzedawcy',
+  path: '/sprzedawcy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/linki': typeof LinkiRoute
+  '/poradnik': typeof PoradnikRoute
+  '/promocje': typeof PromocjeRoute
+  '/sprzedawcy': typeof SprzedawcyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/linki': typeof LinkiRoute
+  '/poradnik': typeof PoradnikRoute
+  '/promocje': typeof PromocjeRoute
+  '/sprzedawcy': typeof SprzedawcyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/linki': typeof LinkiRoute
+  '/poradnik': typeof PoradnikRoute
+  '/promocje': typeof PromocjeRoute
+  '/sprzedawcy': typeof SprzedawcyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    '/' | '/admin' | '/linki' | '/poradnik' | '/promocje' | '/sprzedawcy'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/admin' | '/linki' | '/poradnik' | '/promocje' | '/sprzedawcy'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/linki'
+    | '/poradnik'
+    | '/promocje'
+    | '/sprzedawcy'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  LinkiRoute: typeof LinkiRoute
+  PoradnikRoute: typeof PoradnikRoute
+  PromocjeRoute: typeof PromocjeRoute
+  SprzedawcyRoute: typeof SprzedawcyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +106,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/linki': {
+      id: '/linki'
+      path: '/linki'
+      fullPath: '/linki'
+      preLoaderRoute: typeof LinkiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/poradnik': {
+      id: '/poradnik'
+      path: '/poradnik'
+      fullPath: '/poradnik'
+      preLoaderRoute: typeof PoradnikRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/promocje': {
+      id: '/promocje'
+      path: '/promocje'
+      fullPath: '/promocje'
+      preLoaderRoute: typeof PromocjeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sprzedawcy': {
+      id: '/sprzedawcy'
+      path: '/sprzedawcy'
+      fullPath: '/sprzedawcy'
+      preLoaderRoute: typeof SprzedawcyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  LinkiRoute: LinkiRoute,
+  PoradnikRoute: PoradnikRoute,
+  PromocjeRoute: PromocjeRoute,
+  SprzedawcyRoute: SprzedawcyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
