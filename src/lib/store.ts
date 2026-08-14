@@ -30,6 +30,19 @@ export type Product = {
   agent_links: Record<string, string>;
   sizes: string[];
   images: string[];
+  seller_id?: string | null;
+};
+
+export type Seller = {
+  id: string;
+  name: string;
+  slug: string;
+  username: string;
+  password_hash: string;
+  logo_url: string | null;
+  banner_url: string | null;
+  description: string;
+  active: boolean;
 };
 
 export type GuideStep = {
@@ -41,6 +54,37 @@ export type GuideStep = {
 };
 
 export type Settings = Record<string, string>;
+
+export const useSellers = () =>
+  useQuery({
+    queryKey: ["sellers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sellers").select("*").order("name");
+      if (error) throw error;
+      return (data ?? []) as Seller[];
+    },
+  });
+
+/** Upload files to the product-images bucket and return long-lived signed URLs. */
+export async function uploadImages(files: File[], folder = "uploads"): Promise<string[]> {
+  const urls: string[] = [];
+  for (const file of files) {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file, {
+      cacheControl: "31536000",
+      upsert: false,
+    });
+    if (error) throw error;
+    const { data, error: signErr } = await supabase.storage
+      .from("product-images")
+      .createSignedUrl(path, 60 * 60 * 24 * 3650);
+    if (signErr) throw signErr;
+    if (data?.signedUrl) urls.push(data.signedUrl);
+  }
+  return urls;
+}
+
 
 export const useAgents = () =>
   useQuery({
