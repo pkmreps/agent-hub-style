@@ -15,6 +15,7 @@ import { Route as AgenciRouteImport } from './routes/agenci'
 import { Route as LinkiRouteImport } from './routes/linki'
 import { Route as PoradnikRouteImport } from './routes/poradnik'
 import { Route as PromocjeRouteImport } from './routes/promocje'
+import { Route as SellerRouteImport } from './routes/seller'
 import { Route as SprzedawcyRouteImport } from './routes/sprzedawcy'
 import { Route as SklepSlugRouteImport } from './routes/sklep.$slug'
 
@@ -48,6 +49,11 @@ const PromocjeRoute = PromocjeRouteImport.update({
   path: '/promocje',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SellerRoute = SellerRouteImport.update({
+  id: '/seller',
+  path: '/seller',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SprzedawcyRoute = SprzedawcyRouteImport.update({
   id: '/sprzedawcy',
   path: '/sprzedawcy',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/linki': typeof LinkiRoute
   '/poradnik': typeof PoradnikRoute
   '/promocje': typeof PromocjeRoute
+  '/seller': typeof SellerRoute
   '/sprzedawcy': typeof SprzedawcyRoute
   '/sklep/$slug': typeof SklepSlugRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/linki': typeof LinkiRoute
   '/poradnik': typeof PoradnikRoute
   '/promocje': typeof PromocjeRoute
+  '/seller': typeof SellerRoute
   '/sprzedawcy': typeof SprzedawcyRoute
   '/sklep/$slug': typeof SklepSlugRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/linki': typeof LinkiRoute
   '/poradnik': typeof PoradnikRoute
   '/promocje': typeof PromocjeRoute
+  '/seller': typeof SellerRoute
   '/sprzedawcy': typeof SprzedawcyRoute
   '/sklep/$slug': typeof SklepSlugRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/linki'
     | '/poradnik'
     | '/promocje'
+    | '/seller'
     | '/sprzedawcy'
     | '/sklep/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/linki'
     | '/poradnik'
     | '/promocje'
+    | '/seller'
     | '/sprzedawcy'
     | '/sklep/$slug'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/linki'
     | '/poradnik'
     | '/promocje'
+    | '/seller'
     | '/sprzedawcy'
     | '/sklep/$slug'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   LinkiRoute: typeof LinkiRoute
   PoradnikRoute: typeof PoradnikRoute
   PromocjeRoute: typeof PromocjeRoute
+  SellerRoute: typeof SellerRoute
   SprzedawcyRoute: typeof SprzedawcyRoute
   SklepSlugRoute: typeof SklepSlugRoute
 }
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PromocjeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/seller': {
+      id: '/seller'
+      path: '/seller'
+      fullPath: '/seller'
+      preLoaderRoute: typeof SellerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sprzedawcy': {
       id: '/sprzedawcy'
       path: '/sprzedawcy'
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   LinkiRoute: LinkiRoute,
   PoradnikRoute: PoradnikRoute,
   PromocjeRoute: PromocjeRoute,
+  SellerRoute: SellerRoute,
   SprzedawcyRoute: SprzedawcyRoute,
   SklepSlugRoute: SklepSlugRoute,
 }
