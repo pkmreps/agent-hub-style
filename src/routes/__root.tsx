@@ -15,6 +15,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Header } from "@/components/Header";
 import { FloatingIsland } from "@/components/FloatingIsland";
 import { PromoModal } from "@/components/PromoModal";
+import { LanguageProvider } from "@/lib/i18n";
+
 
 
 function NotFoundComponent() {
@@ -131,18 +133,21 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isAdmin = pathname.startsWith("/admin");
+  const isPanel = pathname.startsWith("/admin") || pathname.startsWith("/seller");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen">
-        {!isAdmin && <Header />}
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        {!isAdmin && <FloatingIsland />}
-        {!isAdmin && <PromoModal />}
-      </div>
+      <LanguageProvider>
+        <div className="min-h-screen">
+          {!isPanel && <Header />}
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          {!isPanel && <FloatingIsland />}
+          {!isPanel && <PromoModal />}
+        </div>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
+
 

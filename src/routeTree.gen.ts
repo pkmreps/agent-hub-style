@@ -11,10 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AgenciRouteImport } from './routes/agenci'
 import { Route as LinkiRouteImport } from './routes/linki'
 import { Route as PoradnikRouteImport } from './routes/poradnik'
 import { Route as PromocjeRouteImport } from './routes/promocje'
+import { Route as SellerRouteImport } from './routes/seller'
 import { Route as SprzedawcyRouteImport } from './routes/sprzedawcy'
+import { Route as SklepSlugRouteImport } from './routes/sklep.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgenciRoute = AgenciRouteImport.update({
+  id: '/agenci',
+  path: '/agenci',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LinkiRoute = LinkiRouteImport.update({
@@ -41,60 +49,102 @@ const PromocjeRoute = PromocjeRouteImport.update({
   path: '/promocje',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SellerRoute = SellerRouteImport.update({
+  id: '/seller',
+  path: '/seller',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SprzedawcyRoute = SprzedawcyRouteImport.update({
   id: '/sprzedawcy',
   path: '/sprzedawcy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SklepSlugRoute = SklepSlugRouteImport.update({
+  id: '/sklep/$slug',
+  path: '/sklep/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/agenci': typeof AgenciRoute
   '/linki': typeof LinkiRoute
   '/poradnik': typeof PoradnikRoute
   '/promocje': typeof PromocjeRoute
+  '/seller': typeof SellerRoute
   '/sprzedawcy': typeof SprzedawcyRoute
+  '/sklep/$slug': typeof SklepSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/agenci': typeof AgenciRoute
   '/linki': typeof LinkiRoute
   '/poradnik': typeof PoradnikRoute
   '/promocje': typeof PromocjeRoute
+  '/seller': typeof SellerRoute
   '/sprzedawcy': typeof SprzedawcyRoute
+  '/sklep/$slug': typeof SklepSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/agenci': typeof AgenciRoute
   '/linki': typeof LinkiRoute
   '/poradnik': typeof PoradnikRoute
   '/promocje': typeof PromocjeRoute
+  '/seller': typeof SellerRoute
   '/sprzedawcy': typeof SprzedawcyRoute
+  '/sklep/$slug': typeof SklepSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/admin' | '/linki' | '/poradnik' | '/promocje' | '/sprzedawcy'
+    | '/'
+    | '/admin'
+    | '/agenci'
+    | '/linki'
+    | '/poradnik'
+    | '/promocje'
+    | '/seller'
+    | '/sprzedawcy'
+    | '/sklep/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/linki' | '/poradnik' | '/promocje' | '/sprzedawcy'
+  to:
+    | '/'
+    | '/admin'
+    | '/agenci'
+    | '/linki'
+    | '/poradnik'
+    | '/promocje'
+    | '/seller'
+    | '/sprzedawcy'
+    | '/sklep/$slug'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/agenci'
     | '/linki'
     | '/poradnik'
     | '/promocje'
+    | '/seller'
     | '/sprzedawcy'
+    | '/sklep/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AgenciRoute: typeof AgenciRoute
   LinkiRoute: typeof LinkiRoute
   PoradnikRoute: typeof PoradnikRoute
   PromocjeRoute: typeof PromocjeRoute
+  SellerRoute: typeof SellerRoute
   SprzedawcyRoute: typeof SprzedawcyRoute
+  SklepSlugRoute: typeof SklepSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -111,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agenci': {
+      id: '/agenci'
+      path: '/agenci'
+      fullPath: '/agenci'
+      preLoaderRoute: typeof AgenciRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/linki': {
@@ -134,11 +191,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PromocjeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/seller': {
+      id: '/seller'
+      path: '/seller'
+      fullPath: '/seller'
+      preLoaderRoute: typeof SellerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sprzedawcy': {
       id: '/sprzedawcy'
       path: '/sprzedawcy'
       fullPath: '/sprzedawcy'
       preLoaderRoute: typeof SprzedawcyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sklep/$slug': {
+      id: '/sklep/$slug'
+      path: '/sklep/$slug'
+      fullPath: '/sklep/$slug'
+      preLoaderRoute: typeof SklepSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -147,10 +218,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AgenciRoute: AgenciRoute,
   LinkiRoute: LinkiRoute,
   PoradnikRoute: PoradnikRoute,
   PromocjeRoute: PromocjeRoute,
+  SellerRoute: SellerRoute,
   SprzedawcyRoute: SprzedawcyRoute,
+  SklepSlugRoute: SklepSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

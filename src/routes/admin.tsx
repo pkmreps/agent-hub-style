@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
+import { ImageUploader } from "@/components/ImageUploader";
 import {
   parseList,
   safeStorage,
@@ -12,6 +13,7 @@ import {
   useGuideSteps,
   useProducts,
   useRefresh,
+  useSellers,
   useSettings,
   type Product,
 } from "@/lib/store";
@@ -45,7 +47,7 @@ function AdminPage() {
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<
-    "branding" | "agents" | "categories" | "products" | "guide" | "security"
+    "branding" | "agents" | "categories" | "products" | "sellers" | "guide" | "security"
   >("branding");
   const { data: settings } = useSettings();
 
@@ -104,6 +106,7 @@ function AdminPage() {
     ["agents", "Agenci"],
     ["categories", "Kategorie"],
     ["products", "Produkty"],
+    ["sellers", "Sprzedawcy"],
     ["guide", "Poradnik"],
     ["security", "Bezpieczeństwo"],
   ] as const;
@@ -139,6 +142,7 @@ function AdminPage() {
       {tab === "agents" && <AgentsTab />}
       {tab === "categories" && <CategoriesTab />}
       {tab === "products" && <ProductsTab />}
+      {tab === "sellers" && <SellersTab />}
       {tab === "guide" && <GuideTab />}
       {tab === "security" && <SecurityTab />}
     </div>
@@ -180,6 +184,22 @@ function BrandingTab() {
             />
           </label>
         ))}
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <ImageUploader
+          urls={form["agent_logo_url"] ? [form["agent_logo_url"]!] : []}
+          multiple={false}
+          folder="branding"
+          label="Logo z urządzenia / galerii"
+          onChange={(u) => setForm({ ...form, agent_logo_url: u[0] ?? "" })}
+        />
+        <ImageUploader
+          urls={form["promo_banner_url"] ? [form["promo_banner_url"]!] : []}
+          multiple={false}
+          folder="branding"
+          label="Baner promo z urządzenia / galerii"
+          onChange={(u) => setForm({ ...form, promo_banner_url: u[0] ?? "" })}
+        />
       </div>
       {form["agent_logo_url"] ? (
         <img
@@ -360,6 +380,7 @@ function ProductsTab() {
   const { data: products } = useProducts();
   const { data: categories } = useCategories();
   const { data: agents } = useAgents();
+  const { data: sellers } = useSellers();
   const refresh = useRefresh();
 
   const empty = {
@@ -371,6 +392,7 @@ function ProductsTab() {
     quality: "Best",
     sizes: "",
     images: "",
+    seller_id: "",
     agent_links: {} as Record<string, string>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
@@ -386,6 +408,7 @@ function ProductsTab() {
       quality: form.quality,
       sizes: parseList(form.sizes),
       images: parseList(form.images),
+      seller_id: form.seller_id || null,
       agent_links: form.agent_links,
     };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
@@ -473,6 +496,33 @@ function ProductsTab() {
               value={form.images}
               onChange={(e) => setForm({ ...form, images: e.target.value })}
             />
+            <select
+              className={input}
+              value={form.seller_id}
+              onChange={(e) => setForm({ ...form, seller_id: e.target.value })}
+            >
+              <option value="">— sprzedawca (opcjonalnie) —</option>
+              {(sellers ?? []).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <ImageUploader
+              urls={form.image_url ? [form.image_url] : []}
+              multiple={false}
+              folder="products"
+              label="Zdjęcie główne z urządzenia"
+              onChange={(u) => setForm({ ...form, image_url: u[0] ?? "" })}
+            />
+            <ImageUploader
+              urls={parseList(form.images)}
+              folder="products"
+              onChange={(u) => setForm({ ...form, images: u.join(", ") })}
+            />
           </div>
 
           <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -539,6 +589,7 @@ function ProductsTab() {
                     quality: p.quality,
                     sizes: (p.sizes ?? []).join(", "),
                     images: (p.images ?? []).join(", "),
+                    seller_id: p.seller_id ?? "",
                     agent_links: p.agent_links ?? {},
                   })
                 }
@@ -549,6 +600,178 @@ function ProductsTab() {
                 className={btnGhost}
                 onClick={async () => {
                   await supabase.from("products").delete().eq("id", p.id);
+                  await refresh("products");
+                }}
+              >
+                Usuń
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function SellersTab() {
+  const { data: sellers } = useSellers();
+  const { data: products } = useProducts();
+  const refresh = useRefresh();
+  const empty = {
+    name: "",
+    slug: "",
+    username: "",
+    password: "",
+    logo_url: "",
+    banner_url: "",
+    description: "",
+    active: true,
+  };
+  const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+  const [msg, setMsg] = useState("");
+
+  const save = async () => {
+    if (!form.name.trim() || !form.username.trim()) return;
+    const slug =
+      (form.slug || form.name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const base = {
+      name: form.name.trim(),
+      slug,
+      username: form.username.trim(),
+      logo_url: form.logo_url,
+      banner_url: form.banner_url,
+      description: form.description,
+      active: form.active,
+    };
+    const withPass = form.password
+      ? { ...base, password_hash: await sha256Hex(form.password) }
+      : base;
+    const { error } = form.id
+      ? await supabase.from("sellers").update(withPass).eq("id", form.id)
+      : await supabase.from("sellers").insert(withPass);
+    setMsg(error ? "Nie udało się zapisać sprzedawcy." : "Zapisano.");
+    if (!error) setForm(empty);
+    await refresh("sellers");
+  };
+
+  return (
+    <section className="grid gap-6 lg:grid-cols-2">
+      <div className="rounded-2xl border border-border bg-surface p-6">
+        <h2 className="mb-4 text-lg font-bold">
+          {form.id ? "Edytuj sprzedawcę" : "Dodaj sprzedawcę"}
+        </h2>
+        <div className="space-y-3">
+          <input
+            className={input}
+            placeholder="Nazwa sklepu"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+          <input
+            className={input}
+            placeholder="Slug URL (np. momo-store)"
+            value={form.slug}
+            onChange={(e) => setForm({ ...form, slug: e.target.value })}
+          />
+          <input
+            className={input}
+            placeholder="Login sprzedawcy"
+            autoCapitalize="none"
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
+          />
+          <input
+            className={input}
+            type="password"
+            placeholder={form.id ? "Nowe hasło (opcjonalnie)" : "Hasło"}
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+          <textarea
+            className={`${input} min-h-20`}
+            placeholder="Opis sklepu"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ImageUploader
+              urls={form.logo_url ? [form.logo_url] : []}
+              multiple={false}
+              folder="stores"
+              label="Logo sklepu"
+              onChange={(u) => setForm({ ...form, logo_url: u[0] ?? "" })}
+            />
+            <ImageUploader
+              urls={form.banner_url ? [form.banner_url] : []}
+              multiple={false}
+              folder="stores"
+              label="Baner sklepu"
+              onChange={(u) => setForm({ ...form, banner_url: u[0] ?? "" })}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={form.active}
+              onChange={(e) => setForm({ ...form, active: e.target.checked })}
+            />
+            Sklep aktywny
+          </label>
+          {msg ? <p className="text-xs text-brand-cyan">{msg}</p> : null}
+          <div className="flex gap-2">
+            <button className={btn} onClick={() => void save()}>
+              Zapisz
+            </button>
+            {form.id ? (
+              <button className={btnGhost} onClick={() => setForm(empty)}>
+                Anuluj
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-surface p-6">
+        <h2 className="mb-4 text-lg font-bold">Sprzedawcy</h2>
+        <ul className="space-y-2">
+          {(sellers ?? []).map((s) => (
+            <li
+              key={s.id}
+              className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-3"
+            >
+              {s.logo_url ? (
+                <img src={s.logo_url} alt="" className="h-8 w-8 rounded-lg object-cover" />
+              ) : null}
+              <div className="flex-1">
+                <p className="text-sm font-semibold">{s.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  /sklep/{s.slug} · {(products ?? []).filter((p) => p.seller_id === s.id).length}{" "}
+                  produktów {s.active ? "" : "· nieaktywny"}
+                </p>
+              </div>
+              <button
+                className={btnGhost}
+                onClick={() =>
+                  setForm({
+                    id: s.id,
+                    name: s.name,
+                    slug: s.slug,
+                    username: s.username,
+                    password: "",
+                    logo_url: s.logo_url ?? "",
+                    banner_url: s.banner_url ?? "",
+                    description: s.description,
+                    active: s.active,
+                  })
+                }
+              >
+                Edytuj
+              </button>
+              <button
+                className={btnGhost}
+                onClick={async () => {
+                  await supabase.from("sellers").delete().eq("id", s.id);
+                  await refresh("sellers");
                   await refresh("products");
                 }}
               >
