@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
+import { ImageUploader } from "@/components/ImageUploader";
 import {
   parseList,
   safeStorage,
@@ -12,6 +13,7 @@ import {
   useGuideSteps,
   useProducts,
   useRefresh,
+  useSellers,
   useSettings,
   type Product,
 } from "@/lib/store";
@@ -45,7 +47,7 @@ function AdminPage() {
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<
-    "branding" | "agents" | "categories" | "products" | "guide" | "security"
+    "branding" | "agents" | "categories" | "products" | "sellers" | "guide" | "security"
   >("branding");
   const { data: settings } = useSettings();
 
@@ -104,6 +106,7 @@ function AdminPage() {
     ["agents", "Agenci"],
     ["categories", "Kategorie"],
     ["products", "Produkty"],
+    ["sellers", "Sprzedawcy"],
     ["guide", "Poradnik"],
     ["security", "Bezpieczeństwo"],
   ] as const;
@@ -139,6 +142,7 @@ function AdminPage() {
       {tab === "agents" && <AgentsTab />}
       {tab === "categories" && <CategoriesTab />}
       {tab === "products" && <ProductsTab />}
+      {tab === "sellers" && <SellersTab />}
       {tab === "guide" && <GuideTab />}
       {tab === "security" && <SecurityTab />}
     </div>
@@ -180,6 +184,22 @@ function BrandingTab() {
             />
           </label>
         ))}
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <ImageUploader
+          urls={form["agent_logo_url"] ? [form["agent_logo_url"]!] : []}
+          multiple={false}
+          folder="branding"
+          label="Logo z urządzenia / galerii"
+          onChange={(u) => setForm({ ...form, agent_logo_url: u[0] ?? "" })}
+        />
+        <ImageUploader
+          urls={form["promo_banner_url"] ? [form["promo_banner_url"]!] : []}
+          multiple={false}
+          folder="branding"
+          label="Baner promo z urządzenia / galerii"
+          onChange={(u) => setForm({ ...form, promo_banner_url: u[0] ?? "" })}
+        />
       </div>
       {form["agent_logo_url"] ? (
         <img
@@ -360,6 +380,7 @@ function ProductsTab() {
   const { data: products } = useProducts();
   const { data: categories } = useCategories();
   const { data: agents } = useAgents();
+  const { data: sellers } = useSellers();
   const refresh = useRefresh();
 
   const empty = {
@@ -371,6 +392,7 @@ function ProductsTab() {
     quality: "Best",
     sizes: "",
     images: "",
+    seller_id: "",
     agent_links: {} as Record<string, string>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
@@ -386,6 +408,7 @@ function ProductsTab() {
       quality: form.quality,
       sizes: parseList(form.sizes),
       images: parseList(form.images),
+      seller_id: form.seller_id || null,
       agent_links: form.agent_links,
     };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
@@ -473,6 +496,33 @@ function ProductsTab() {
               value={form.images}
               onChange={(e) => setForm({ ...form, images: e.target.value })}
             />
+            <select
+              className={input}
+              value={form.seller_id}
+              onChange={(e) => setForm({ ...form, seller_id: e.target.value })}
+            >
+              <option value="">— sprzedawca (opcjonalnie) —</option>
+              {(sellers ?? []).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <ImageUploader
+              urls={form.image_url ? [form.image_url] : []}
+              multiple={false}
+              folder="products"
+              label="Zdjęcie główne z urządzenia"
+              onChange={(u) => setForm({ ...form, image_url: u[0] ?? "" })}
+            />
+            <ImageUploader
+              urls={parseList(form.images)}
+              folder="products"
+              onChange={(u) => setForm({ ...form, images: u.join(", ") })}
+            />
           </div>
 
           <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -539,6 +589,7 @@ function ProductsTab() {
                     quality: p.quality,
                     sizes: (p.sizes ?? []).join(", "),
                     images: (p.images ?? []).join(", "),
+                    seller_id: p.seller_id ?? "",
                     agent_links: p.agent_links ?? {},
                   })
                 }
