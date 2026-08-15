@@ -1,4 +1,4 @@
-import { useAgents, useSettings } from "@/lib/store";
+import { useAgents, useSettings, useSocialLinks } from "@/lib/store";
 
 function IconLink({
   href,
@@ -26,35 +26,36 @@ function IconLink({
 export function FloatingIsland() {
   const { data: agents } = useAgents();
   const { data: settings } = useSettings();
+  const { data: socials } = useSocialLinks();
   const s = settings ?? {};
+
+  const fallback = [
+    ["TikTok", s["tiktok_url"], "TT"],
+    ["Discord", s["discord_url"], "DC"],
+    ["Telegram", s["telegram_url"], "TG"],
+    ["WhatsApp", s["whatsapp_url"], "WA"],
+    ["Instagram", s["instagram_url"], "IG"],
+  ] as const;
+
+  const dynamic = (socials ?? []).filter((l) => l.url);
+  const links = dynamic.length
+    ? dynamic.map((l) => ({
+        id: l.id,
+        label: l.label,
+        url: l.url,
+        icon: l.icon || l.label.slice(0, 2).toUpperCase(),
+      }))
+    : fallback
+        .filter(([, url]) => Boolean(url))
+        .map(([label, url, icon]) => ({ id: label, label, url: url as string, icon }));
 
   return (
     <div className="fixed right-3 top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-2 rounded-2xl border border-border bg-surface-deep/80 p-2 backdrop-blur-xl glow-ring sm:flex">
-      {s["tiktok_url"] ? (
-        <IconLink href={s["tiktok_url"]} label="TikTok">
-          <span className="text-xs font-bold">TT</span>
+      {links.map((l) => (
+        <IconLink key={l.id} href={l.url} label={l.label}>
+          <span className="text-xs font-bold">{l.icon}</span>
         </IconLink>
-      ) : null}
-      {s["discord_url"] ? (
-        <IconLink href={s["discord_url"]} label="Discord">
-          <span className="text-xs font-bold">DC</span>
-        </IconLink>
-      ) : null}
-      {s["telegram_url"] ? (
-        <IconLink href={s["telegram_url"]} label="Telegram">
-          <span className="text-xs font-bold">TG</span>
-        </IconLink>
-      ) : null}
-      {s["whatsapp_url"] ? (
-        <IconLink href={s["whatsapp_url"]} label="WhatsApp">
-          <span className="text-xs font-bold">WA</span>
-        </IconLink>
-      ) : null}
-      {s["instagram_url"] ? (
-        <IconLink href={s["instagram_url"]} label="Instagram">
-          <span className="text-xs font-bold">IG</span>
-        </IconLink>
-      ) : null}
+      ))}
       <div className="my-1 h-px bg-border" />
       {(agents ?? []).map((a) => (
         <IconLink key={a.id} href={a.referral_url} label={a.name}>
