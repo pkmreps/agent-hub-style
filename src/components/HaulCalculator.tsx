@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
-import { money, shippingCost, useShippingRates, usdFromPln } from "@/lib/store";
+import {
+  money,
+  shippingCost,
+  useShippingRates,
+  usdFromPln,
+  type ShippingRate,
+} from "@/lib/store";
 
 /** Weight-based shipping comparison across agents, driven by admin-managed rates. */
 export function HaulCalculator() {
@@ -7,9 +13,11 @@ export function HaulCalculator() {
   const [kg, setKg] = useState(2);
 
   const results = useMemo(() => {
-    const list = (rates ?? [])
-      .map((r) => ({ rate: r, cost: shippingCost(r, kg) }))
-      .filter((r): r is { rate: (typeof list)[number]["rate"]; cost: number } => r.cost !== null);
+    const list: { rate: ShippingRate; cost: number }[] = [];
+    for (const r of rates ?? []) {
+      const cost = shippingCost(r, kg);
+      if (cost !== null) list.push({ rate: r, cost });
+    }
     return list.sort((a, b) => a.cost - b.cost);
   }, [rates, kg]);
 
