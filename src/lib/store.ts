@@ -31,7 +31,58 @@ export type Product = {
   sizes: string[];
   images: string[];
   seller_id?: string | null;
+  batch: string;
+  display_order: number;
+  tiktok_url: string | null;
+  price_cny: number;
+  promoted: boolean;
 };
+
+export type Promo = {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  link_url: string;
+  sort_order: number;
+};
+
+export type SocialLink = {
+  id: string;
+  label: string;
+  url: string;
+  icon: string;
+  sort_order: number;
+};
+
+export type ShippingRate = {
+  id: string;
+  agent_name: string;
+  line_name: string;
+  base_price: number;
+  price_per_kg: number;
+  min_weight: number;
+  max_weight: number;
+  sort_order: number;
+};
+
+/** Fixed conversion rates used across the catalog. */
+export const CNY_TO_PLN = 0.552421;
+export const PLN_TO_USD = 0.25;
+
+export function plnFromCny(cny: number) {
+  return cny * CNY_TO_PLN;
+}
+export function cnyFromPln(pln: number) {
+  return pln / CNY_TO_PLN;
+}
+export function usdFromPln(pln: number) {
+  return pln * PLN_TO_USD;
+}
+/** "123.00 PLN" style formatting helper. */
+export function money(value: number, digits = 2) {
+  return Number.isFinite(value) ? value.toFixed(digits) : "0.00";
+}
 
 export type Seller = {
   id: string;
@@ -43,6 +94,7 @@ export type Seller = {
   banner_url: string | null;
   description: string;
   active: boolean;
+  external_url: string;
 };
 
 export type GuideStep = {
@@ -113,6 +165,7 @@ export const useProducts = () =>
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).map((p) => ({
@@ -120,6 +173,10 @@ export const useProducts = () =>
         agent_links: (p.agent_links ?? {}) as Record<string, string>,
         sizes: (p.sizes ?? []) as string[],
         images: (p.images ?? []) as string[],
+        batch: p.batch ?? "",
+        display_order: p.display_order ?? 0,
+        price_cny: Number(p.price_cny ?? 0),
+        promoted: Boolean(p.promoted),
       })) as Product[];
     },
   });
@@ -265,4 +322,47 @@ function jsSha256(text: string): string {
   return Array.from(H)
     .map((x) => (x >>> 0).toString(16).padStart(8, "0"))
     .join("");
+}
+
+
+export const usePromos = () =>
+  useQuery({
+    queryKey: ["promos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("promos").select("*").order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as Promo[];
+    },
+  });
+
+export const useSocialLinks = () =>
+  useQuery({
+    queryKey: ["social_links"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("social_links").select("*").order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as SocialLink[];
+    },
+  });
+
+export const useShippingRates = () =>
+  useQuery({
+    queryKey: ["shipping_rates"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("shipping_rates").select("*").order("sort_order");
+      if (error) throw error;
+      return (data ?? []).map((r) => ({
+        ...r,
+        base_price: Number(r.base_price),
+        price_per_kg: Number(r.price_per_kg),
+        min_weight: Number(r.min_weight),
+        max_weight: Number(r.max_weight),
+      })) as ShippingRate[];
+    },
+  });
+
+/** Shipping cost for a weight, or null when the line does not cover that weight. */
+export function shippingCost(rate: ShippingRate, kg: number): number | null {
+  if (kg < rate.min_weight || kg > rate.max_weight) return null;
+  return rate.base_price + rate.price_per_kg * kg;
 }
