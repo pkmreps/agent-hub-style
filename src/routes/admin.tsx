@@ -1,9 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { ImageUploader } from "@/components/ImageUploader";
+import { scrapeProduct } from "@/lib/scrape.functions";
 import {
+  cnyFromPln,
+  plnFromCny,
   parseList,
   safeStorage,
   saveSetting,
@@ -12,9 +15,12 @@ import {
   useCategories,
   useGuideSteps,
   useProducts,
+  usePromos,
   useRefresh,
   useSellers,
   useSettings,
+  useShippingRates,
+  useSocialLinks,
   type Product,
 } from "@/lib/store";
 
@@ -47,7 +53,14 @@ function AdminPage() {
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<
-    "branding" | "agents" | "categories" | "products" | "sellers" | "guide" | "security"
+    | "branding"
+    | "promos"
+    | "categories"
+    | "products"
+    | "sellers"
+    | "shipping"
+    | "guide"
+    | "security"
   >("branding");
   const { data: settings } = useSettings();
 
@@ -103,10 +116,11 @@ function AdminPage() {
 
   const tabs = [
     ["branding", "Branding"],
-    ["agents", "Agenci"],
+    ["promos", "Promocje"],
     ["categories", "Kategorie"],
     ["products", "Produkty"],
     ["sellers", "Sprzedawcy"],
+    ["shipping", "Wysyłki"],
     ["guide", "Poradnik"],
     ["security", "Bezpieczeństwo"],
   ] as const;
@@ -115,6 +129,10 @@ function AdminPage() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black text-gradient-brand">Panel administratora</h1>
+        <div className="flex gap-2">
+        <Link to="/" className={btnGhost}>
+          ← Powrót do strony
+        </Link>
         <button
           className={btnGhost}
           onClick={() => {
@@ -124,6 +142,7 @@ function AdminPage() {
         >
           Wyloguj
         </button>
+        </div>
       </div>
 
       <div className="my-6 flex flex-wrap gap-2">
@@ -139,10 +158,11 @@ function AdminPage() {
       </div>
 
       {tab === "branding" && <BrandingTab />}
-      {tab === "agents" && <AgentsTab />}
+      {tab === "promos" && <PromosTab />}
       {tab === "categories" && <CategoriesTab />}
       {tab === "products" && <ProductsTab />}
       {tab === "sellers" && <SellersTab />}
+      {tab === "shipping" && <ShippingTab />}
       {tab === "guide" && <GuideTab />}
       {tab === "security" && <SecurityTab />}
     </div>
@@ -217,6 +237,376 @@ function BrandingTab() {
       >
         Zapisz
       </button>
+
+      <SocialLinksManager />
+    </section>
+  );
+}
+
+function SocialLinksManager() {
+  const { data: links } = useSocialLinks();
+  const refresh = useRefresh();
+  const empty = { label: "", url: "", icon: "", sort_order: 0 };
+  const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+
+  const save = async () => {
+    if (!form.label.trim()) return;
+    if (form.id) await supabase.from("social_links").update(form).eq("id", form.id);
+    else await supabase.from("social_links").insert(form);
+    setForm(empty);
+    await refresh("social_links");
+  };
+
+  return (
+    <div className="mt-8 border-t border-border pt-6">
+      <h3 className="mb-1 text-base font-bold">Linki social (dynamiczne)</h3>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Dodawaj, edytuj i usuwaj dowolne social media — pojawiają się na stronie i w pływającej
+        wyspie.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <input
+          className={input}
+          placeholder="Nazwa (TikTok)"
+          value={form.label}
+          onChange={(e) => setForm({ ...form, label: e.target.value })}
+        />
+        <input
+          className={input}
+          placeholder="Adres URL"
+          value={form.url}
+          onChange={(e) => setForm({ ...form, url: e.target.value })}
+        />
+        <input
+          className={input}
+          placeholder="Ikona / skrót (TT)"
+          value={form.icon}
+          onChange={(e) => setForm({ ...form, icon: e.target.value })}
+        />
+        <div className="flex gap-2">
+          <button className={btn} onClick={() => void save()}>
+            {form.id ? "Zapisz" : "Dodaj"}
+          </button>
+          {form.id ? (
+            <button className={btnGhost} onClick={() => setForm(empty)}>
+              Anuluj
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <ul className="mt-4 flex flex-wrap gap-2">
+        {(links ?? []).map((l) => (
+          <li
+            key={l.id}
+            className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs"
+          >
+            <span className="font-semibold">
+              {l.icon || "•"} {l.label}
+            </span>
+            <button
+              className="text-primary"
+              onClick={() =>
+                setForm({
+                  id: l.id,
+                  label: l.label,
+                  url: l.url,
+                  icon: l.icon,
+                  sort_order: l.sort_order,
+                })
+              }
+            >
+              edytuj
+            </button>
+            <button
+              className="text-destructive"
+              onClick={async () => {
+                await supabase.from("social_links").delete().eq("id", l.id);
+                await refresh("social_links");
+              }}
+            >
+              usuń
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function PromosTab() {
+  const { data: settings } = useSettings();
+  const { data: promos } = usePromos();
+  const refresh = useRefresh();
+  const empty = { title: "", description: "", image_url: "", link_url: "", sort_order: 0 };
+  const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+  const code = settings?.["promo_code"] || "PKMR";
+
+  const save = async () => {
+    if (!form.title.trim()) return;
+    if (form.id) await supabase.from("promos").update(form).eq("id", form.id);
+    else await supabase.from("promos").insert(form);
+    setForm(empty);
+    await refresh("promos");
+  };
+
+  return (
+    <section className="space-y-6">
+      <div className="rounded-2xl border border-primary/40 bg-surface p-6 glow-ring">
+        <h2 className="text-lg font-bold">Kupony i społeczność</h2>
+        <p className="mt-2 text-sm">
+          Kod promocyjny: <span className="font-mono font-bold text-primary">{code}</span> — $450 w
+          kuponach + 40% zniżki przy rejestracji.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Discord społeczności:{" "}
+          <a
+            className="text-primary"
+            href={settings?.["discord_url"] || "#"}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {settings?.["discord_url"] || "— ustaw w zakładce Branding —"}
+          </a>
+        </p>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-surface p-6">
+          <h2 className="mb-4 text-lg font-bold">
+            {form.id ? "Edytuj promocję" : "Dodaj promocję / ogłoszenie sklepu"}
+          </h2>
+          <div className="space-y-3">
+            <input
+              className={input}
+              placeholder="Tytuł"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+            <textarea
+              className={`${input} min-h-20`}
+              placeholder="Opis / ogłoszenie"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Link rejestracyjny / do promocji"
+              value={form.link_url}
+              onChange={(e) => setForm({ ...form, link_url: e.target.value })}
+            />
+            <ImageUploader
+              urls={form.image_url ? [form.image_url] : []}
+              multiple={false}
+              folder="promos"
+              label="Grafika promocji z urządzenia"
+              onChange={(u) => setForm({ ...form, image_url: u[0] ?? "" })}
+            />
+            <div className="flex gap-2">
+              <button className={btn} onClick={() => void save()}>
+                Zapisz
+              </button>
+              {form.id ? (
+                <button className={btnGhost} onClick={() => setForm(empty)}>
+                  Anuluj
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-surface p-6">
+          <h2 className="mb-4 text-lg font-bold">Promocje</h2>
+          <ul className="space-y-2">
+            {(promos ?? []).map((pr) => (
+              <li
+                key={pr.id}
+                className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-3"
+              >
+                {pr.image_url ? (
+                  <img src={pr.image_url} alt="" className="h-8 w-8 rounded-lg object-cover" />
+                ) : null}
+                <span className="flex-1 text-sm font-semibold">{pr.title}</span>
+                <button
+                  className={btnGhost}
+                  onClick={() =>
+                    setForm({
+                      id: pr.id,
+                      title: pr.title,
+                      description: pr.description,
+                      image_url: pr.image_url ?? "",
+                      link_url: pr.link_url,
+                      sort_order: pr.sort_order,
+                    })
+                  }
+                >
+                  Edytuj
+                </button>
+                <button
+                  className={btnGhost}
+                  onClick={async () => {
+                    await supabase.from("promos").delete().eq("id", pr.id);
+                    await refresh("promos");
+                  }}
+                >
+                  Usuń
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <AgentsTab />
+    </section>
+  );
+}
+
+function ShippingTab() {
+  const { data: rates } = useShippingRates();
+  const { data: agents } = useAgents();
+  const refresh = useRefresh();
+  const empty = {
+    agent_name: "",
+    line_name: "Standard",
+    base_price: 0,
+    price_per_kg: 0,
+    min_weight: 0,
+    max_weight: 30,
+    sort_order: 0,
+  };
+  const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+
+  const save = async () => {
+    if (!form.agent_name.trim()) return;
+    if (form.id) await supabase.from("shipping_rates").update(form).eq("id", form.id);
+    else await supabase.from("shipping_rates").insert(form);
+    setForm(empty);
+    await refresh("shipping_rates");
+  };
+
+  return (
+    <section className="grid gap-6 lg:grid-cols-2">
+      <div className="rounded-2xl border border-border bg-surface p-6">
+        <h2 className="mb-1 text-lg font-bold">
+          {form.id ? "Edytuj linię wysyłkową" : "Dodaj linię wysyłkową"}
+        </h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Koszt = cena bazowa + (cena za kg × waga), w granicach przedziału wagowego.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input
+            className={input}
+            list="agent-names"
+            placeholder="Agent (np. Litbuy)"
+            value={form.agent_name}
+            onChange={(e) => setForm({ ...form, agent_name: e.target.value })}
+          />
+          <datalist id="agent-names">
+            {(agents ?? []).map((a) => (
+              <option key={a.id} value={a.name} />
+            ))}
+          </datalist>
+          <input
+            className={input}
+            placeholder="Nazwa linii (np. EMS)"
+            value={form.line_name}
+            onChange={(e) => setForm({ ...form, line_name: e.target.value })}
+          />
+          <label className="text-xs font-semibold text-muted-foreground">
+            Cena bazowa (PLN)
+            <input
+              className={`${input} mt-1`}
+              type="number"
+              value={form.base_price}
+              onChange={(e) => setForm({ ...form, base_price: Number(e.target.value) })}
+            />
+          </label>
+          <label className="text-xs font-semibold text-muted-foreground">
+            Cena za kg (PLN)
+            <input
+              className={`${input} mt-1`}
+              type="number"
+              value={form.price_per_kg}
+              onChange={(e) => setForm({ ...form, price_per_kg: Number(e.target.value) })}
+            />
+          </label>
+          <label className="text-xs font-semibold text-muted-foreground">
+            Waga min (kg)
+            <input
+              className={`${input} mt-1`}
+              type="number"
+              value={form.min_weight}
+              onChange={(e) => setForm({ ...form, min_weight: Number(e.target.value) })}
+            />
+          </label>
+          <label className="text-xs font-semibold text-muted-foreground">
+            Waga max (kg)
+            <input
+              className={`${input} mt-1`}
+              type="number"
+              value={form.max_weight}
+              onChange={(e) => setForm({ ...form, max_weight: Number(e.target.value) })}
+            />
+          </label>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <button className={btn} onClick={() => void save()}>
+            Zapisz
+          </button>
+          {form.id ? (
+            <button className={btnGhost} onClick={() => setForm(empty)}>
+              Anuluj
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-surface p-6">
+        <h2 className="mb-4 text-lg font-bold">Stawki wysyłek</h2>
+        <ul className="space-y-2">
+          {(rates ?? []).map((r) => (
+            <li
+              key={r.id}
+              className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-3"
+            >
+              <div className="flex-1">
+                <p className="text-sm font-semibold">
+                  {r.agent_name} · {r.line_name}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {r.base_price} PLN + {r.price_per_kg} PLN/kg · {r.min_weight}–{r.max_weight} kg
+                </p>
+              </div>
+              <button
+                className={btnGhost}
+                onClick={() =>
+                  setForm({
+                    id: r.id,
+                    agent_name: r.agent_name,
+                    line_name: r.line_name,
+                    base_price: r.base_price,
+                    price_per_kg: r.price_per_kg,
+                    min_weight: r.min_weight,
+                    max_weight: r.max_weight,
+                    sort_order: r.sort_order,
+                  })
+                }
+              >
+                Edytuj
+              </button>
+              <button
+                className={btnGhost}
+                onClick={async () => {
+                  await supabase.from("shipping_rates").delete().eq("id", r.id);
+                  await refresh("shipping_rates");
+                }}
+              >
+                Usuń
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
