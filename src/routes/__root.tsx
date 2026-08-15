@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Header } from "@/components/Header";
 import { FloatingIsland } from "@/components/FloatingIsland";
 import { PromoModal } from "@/components/PromoModal";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import { LanguageProvider } from "@/lib/i18n";
 
 
@@ -144,6 +145,7 @@ function RootComponent() {
           <Outlet />
           {!isPanel && <FloatingIsland />}
           {!isPanel && <PromoModal />}
+          {!isPanel && <ScrollToTop />}
         </div>
       </LanguageProvider>
     </QueryClientProvider>

@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
-import { useAgents, useCategories, useProducts } from "@/lib/store";
+import { ProductModal } from "@/components/ProductModal";
+import { OutfitGenerator } from "@/components/OutfitGenerator";
+import { HaulCalculator } from "@/components/HaulCalculator";
+import { useAgents, useCategories, useProducts, type Product } from "@/lib/store";
 import { useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
@@ -32,8 +36,10 @@ function Index() {
   const [cat, setCat] = useState("");
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
+  const [detail, setDetail] = useState<Product | null>(null);
 
-  const all = products ?? [];
+  // Product Finder shows only global (admin) products — seller items live in their stores.
+  const all = useMemo(() => (products ?? []).filter((p) => !p.seller_id), [products]);
 
   const counts = useMemo(() => {
     const map: Record<string, number> = {};
@@ -77,6 +83,25 @@ function Index() {
           />
         </div>
       </section>
+
+      <Link
+        to="/poradnik"
+        className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-surface p-5 transition-all hover:-translate-y-0.5 hover:glow-ring"
+      >
+        <div>
+          <p className="text-sm font-bold">Chcesz przejrzeć poradnik?</p>
+          <p className="text-xs text-muted-foreground">
+            Zobacz poradnik krok po kroku i narzędzia dla kupujących.
+          </p>
+        </div>
+        <span className="rounded-lg gradient-brand px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-surface-deep">
+          Zobacz poradnik →
+        </span>
+      </Link>
+
+      <OutfitGenerator products={all} agents={agents ?? []} onDetails={setDetail} />
+
+      <HaulCalculator />
 
       <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-end">
         <label className="flex-1 text-xs font-semibold text-muted-foreground">
@@ -145,10 +170,14 @@ function Index() {
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} agents={agents ?? []} />
+            <ProductCard key={p.id} product={p} agents={agents ?? []} onDetails={setDetail} />
           ))}
         </div>
       )}
+
+      {detail ? (
+        <ProductModal product={detail} agents={agents ?? []} onClose={() => setDetail(null)} />
+      ) : null}
     </div>
   );
 }
