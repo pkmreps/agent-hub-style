@@ -431,6 +431,11 @@ function ProductsTab() {
     dislikes: 0,
     views: 0,
     agent_links: form.agent_links,
+    batch: (form as { batch?: string }).batch ?? "",
+    display_order: 0,
+    tiktok_url: null,
+    price_cny: 0,
+    promoted: false,
   };
 
   return (
