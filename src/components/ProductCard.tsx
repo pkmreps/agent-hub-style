@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PriceTags, QualityBadges } from "@/components/PriceTags";
 import type { Agent, Product } from "@/lib/store";
 
 export function ProductCard({
@@ -40,7 +41,8 @@ export function ProductCard({
             src={current}
             alt={product.title}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onClick={() => onDetails?.(product)}
+            className="h-full w-full cursor-pointer object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
@@ -114,15 +116,11 @@ export function ProductCard({
           <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
             {product.category || "Inne"}
           </span>
-          <span className="rounded-md border border-brand-teal/50 bg-brand-teal/15 px-2 py-0.5 text-[11px] font-semibold text-brand-cyan">
-            Quality: {product.quality}
-          </span>
         </div>
+        <QualityBadges quality={product.quality} batch={product.batch} />
 
         <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-          <span className="font-display text-lg font-bold">
-            {Number(product.price).toFixed(2)} PLN
-          </span>
+          <PriceTags pln={Number(product.price)} />
           <div className="flex items-center gap-2">
             {product.qc_url ? (
               <a

@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
-import { useAgents, useProducts, useSellers } from "@/lib/store";
+import { ProductModal } from "@/components/ProductModal";
+import { useAgents, useProducts, useSellers, type Product } from "@/lib/store";
 
 export const Route = createFileRoute("/sklep/$slug")({
   head: () => ({
@@ -22,6 +24,7 @@ function StorePage() {
   const { data: sellers } = useSellers();
   const { data: products } = useProducts();
   const { data: agents } = useAgents();
+  const [detail, setDetail] = useState<Product | null>(null);
 
   const seller = (sellers ?? []).find((s) => s.slug === slug);
   const items = (products ?? []).filter((p) => seller && p.seller_id === seller.id);
@@ -53,6 +56,16 @@ function StorePage() {
           <div>
             <h1 className="text-2xl font-black">{seller?.name ?? "Sklep"}</h1>
             <p className="text-sm text-muted-foreground">{seller?.description}</p>
+            {seller?.external_url ? (
+              <a
+                href={seller.external_url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block rounded-lg border border-primary/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-primary hover:glow-ring"
+              >
+                Zewnętrzny sklep / Yupoo →
+              </a>
+            ) : null}
           </div>
         </div>
       </header>
@@ -64,10 +77,14 @@ function StorePage() {
       ) : (
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((p) => (
-            <ProductCard key={p.id} product={p} agents={agents ?? []} />
+            <ProductCard key={p.id} product={p} agents={agents ?? []} onDetails={setDetail} />
           ))}
         </div>
       )}
+
+      {detail ? (
+        <ProductModal product={detail} agents={agents ?? []} onClose={() => setDetail(null)} />
+      ) : null}
     </div>
   );
 }

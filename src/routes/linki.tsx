@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/ProductCard";
-import { useAgents, useCategories, useProducts } from "@/lib/store";
+import { ProductModal } from "@/components/ProductModal";
+import { useAgents, useCategories, useProducts, type Product } from "@/lib/store";
 
 export const Route = createFileRoute("/linki")({
   head: () => ({
@@ -26,9 +27,14 @@ function LinkiPage() {
   const { data: agents } = useAgents();
   const { data: categories } = useCategories();
   const [cat, setCat] = useState("");
+  const [detail, setDetail] = useState<Product | null>(null);
 
+  // Only items actually featured on TikTok (they carry a video link).
   const filtered = useMemo(
-    () => (products ?? []).filter((p) => cat === "" || p.category === cat),
+    () =>
+      (products ?? []).filter(
+        (p) => !p.seller_id && p.tiktok_url && (cat === "" || p.category === cat),
+      ),
     [products, cat],
   );
 
@@ -57,15 +63,31 @@ function LinkiPage() {
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-border bg-surface p-10 text-center text-sm text-muted-foreground">
-          Brak produktów w tej kategorii.
+          Brak produktów z TikToka w tej kategorii.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} agents={agents ?? []} />
+            <div key={p.id} className="space-y-2">
+              <ProductCard product={p} agents={agents ?? []} onDetails={setDetail} />
+              {p.tiktok_url ? (
+                <a
+                  href={p.tiktok_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block rounded-lg border border-border bg-secondary px-3 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-primary hover:border-primary"
+                >
+                  ▶ Zobacz film na TikToku
+                </a>
+              ) : null}
+            </div>
           ))}
         </div>
       )}
+
+      {detail ? (
+        <ProductModal product={detail} agents={agents ?? []} onClose={() => setDetail(null)} />
+      ) : null}
     </div>
   );
 }

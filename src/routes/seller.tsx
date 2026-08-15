@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
@@ -100,6 +100,10 @@ function SellerPage() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black text-gradient-brand">Sklep: {seller.name}</h1>
+        <div className="flex gap-2">
+        <Link to="/" className={btnGhost}>
+          ← Powrót do strony
+        </Link>
         <button
           className={btnGhost}
           onClick={() => {
@@ -109,6 +113,7 @@ function SellerPage() {
         >
           Wyloguj
         </button>
+        </div>
       </div>
       <div className="mt-6 space-y-6">
         <StoreBranding seller={seller} />
@@ -126,6 +131,7 @@ function StoreBranding({ seller }: { seller: Seller }) {
     description: seller.description,
     logo_url: seller.logo_url ?? "",
     banner_url: seller.banner_url ?? "",
+    external_url: seller.external_url ?? "",
   });
   const [msg, setMsg] = useState("");
 
@@ -156,6 +162,12 @@ function StoreBranding({ seller }: { seller: Seller }) {
           placeholder="Baner URL"
           value={form.banner_url}
           onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
+        />
+        <input
+          className={input}
+          placeholder="Zewnętrzny link sklepu (Yupoo itp.)"
+          value={form.external_url}
+          onChange={(e) => setForm({ ...form, external_url: e.target.value })}
         />
         <textarea
           className={`${input} min-h-20 sm:col-span-2`}
@@ -212,6 +224,8 @@ function SellerProducts({ seller }: { seller: Seller }) {
     image_url: "",
     qc_url: "",
     quality: "Best",
+    batch: "",
+    display_order: 0,
     sizes: "",
     images: "",
     agent_links: {} as Record<string, string>,
@@ -230,6 +244,8 @@ function SellerProducts({ seller }: { seller: Seller }) {
       image_url: form.image_url,
       qc_url: form.qc_url,
       quality: form.quality,
+      batch: form.batch,
+      display_order: Number(form.display_order) || 0,
       sizes: parseList(form.sizes),
       images: galleryUrls,
       agent_links: form.agent_links,
@@ -255,6 +271,11 @@ function SellerProducts({ seller }: { seller: Seller }) {
     dislikes: 0,
     views: 0,
     agent_links: form.agent_links,
+    batch: form.batch,
+    display_order: Number(form.display_order) || 0,
+    tiktok_url: null,
+    price_cny: 0,
+    promoted: false,
   };
 
   return (
@@ -290,9 +311,22 @@ function SellerProducts({ seller }: { seller: Seller }) {
             />
             <input
               className={input}
-              placeholder="Quality (np. Best)"
+              placeholder="Quality Tier (Best / Budget / Random)"
               value={form.quality}
               onChange={(e) => setForm({ ...form, quality: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Batch (GX, M, PK, MOMO)"
+              value={form.batch}
+              onChange={(e) => setForm({ ...form, batch: e.target.value })}
+            />
+            <input
+              className={input}
+              type="number"
+              placeholder="Kolejność wyświetlania"
+              value={form.display_order}
+              onChange={(e) => setForm({ ...form, display_order: Number(e.target.value) })}
             />
             <input
               className={input}
@@ -387,6 +421,32 @@ function SellerProducts({ seller }: { seller: Seller }) {
               <span className="flex-1 text-sm font-semibold">{p.title}</span>
               <button
                 className={btnGhost}
+                aria-label="W górę"
+                onClick={async () => {
+                  await supabase
+                    .from("products")
+                    .update({ display_order: (p.display_order ?? 0) - 1 })
+                    .eq("id", p.id);
+                  await refresh("products");
+                }}
+              >
+                ↑
+              </button>
+              <button
+                className={btnGhost}
+                aria-label="W dół"
+                onClick={async () => {
+                  await supabase
+                    .from("products")
+                    .update({ display_order: (p.display_order ?? 0) + 1 })
+                    .eq("id", p.id);
+                  await refresh("products");
+                }}
+              >
+                ↓
+              </button>
+              <button
+                className={btnGhost}
                 onClick={() =>
                   setForm({
                     id: p.id,
@@ -396,6 +456,8 @@ function SellerProducts({ seller }: { seller: Seller }) {
                     image_url: p.image_url ?? "",
                     qc_url: p.qc_url ?? "",
                     quality: p.quality,
+                    batch: p.batch ?? "",
+                    display_order: p.display_order ?? 0,
                     sizes: (p.sizes ?? []).join(", "),
                     images: (p.images ?? []).join(", "),
                     agent_links: p.agent_links ?? {},
