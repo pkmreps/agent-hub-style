@@ -780,12 +780,43 @@ function ProductsTab() {
     image_url: "",
     qc_url: "",
     quality: "Best",
+    batch: "",
     sizes: "",
     images: "",
     seller_id: "",
+    tiktok_url: "",
+    display_order: 0,
+    promoted: false,
+    likes: 0,
+    dislikes: 0,
+    views: 0,
     agent_links: {} as Record<string, string>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scrapeMsg, setScrapeMsg] = useState("");
+
+  const runScrape = async () => {
+    setScrapeMsg("Pobieram dane...");
+    try {
+      const res = await scrapeProduct({ data: { url: scrapeUrl } });
+      if (!res.ok) {
+        setScrapeMsg("Nie udało się pobrać danych — uzupełnij ręcznie.");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        title: f.title || res.title,
+        image_url: f.image_url || (res.images[0] ?? ""),
+        images: f.images || res.images.slice(1).join(", "),
+        sizes: f.sizes || res.sizes.join(", "),
+        price: f.price || Math.round(plnFromCny(res.priceCny) * 100) / 100,
+      }));
+      setScrapeMsg("Dane pobrane — sprawdź i zapisz.");
+    } catch {
+      setScrapeMsg("Nie udało się pobrać danych — uzupełnij ręcznie.");
+    }
+  };
 
   const save = async () => {
     if (!form.title) return;
@@ -796,9 +827,17 @@ function ProductsTab() {
       image_url: form.image_url,
       qc_url: form.qc_url,
       quality: form.quality,
+      batch: form.batch,
       sizes: parseList(form.sizes),
       images: parseList(form.images),
       seller_id: form.seller_id || null,
+      tiktok_url: form.tiktok_url || null,
+      display_order: Number(form.display_order) || 0,
+      promoted: form.promoted,
+      price_cny: Math.round(cnyFromPln(Number(form.price) || 0) * 100) / 100,
+      likes: Number(form.likes) || 0,
+      dislikes: Number(form.dislikes) || 0,
+      views: Number(form.views) || 0,
       agent_links: form.agent_links,
     };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
@@ -817,15 +856,15 @@ function ProductsTab() {
     quality: form.quality,
     sizes: parseList(form.sizes),
     images: parseList(form.images),
-    likes: 0,
-    dislikes: 0,
-    views: 0,
+    likes: Number(form.likes) || 0,
+    dislikes: Number(form.dislikes) || 0,
+    views: Number(form.views) || 0,
     agent_links: form.agent_links,
-    batch: (form as { batch?: string }).batch ?? "",
-    display_order: 0,
-    tiktok_url: null,
-    price_cny: 0,
-    promoted: false,
+    batch: form.batch,
+    display_order: Number(form.display_order) || 0,
+    tiktok_url: form.tiktok_url || null,
+    price_cny: cnyFromPln(Number(form.price) || 0),
+    promoted: form.promoted,
   };
 
   return (
@@ -863,9 +902,42 @@ function ProductsTab() {
             />
             <input
               className={input}
-              placeholder="Quality (np. Best)"
+              placeholder="Quality Tier (Best / Budget / Random)"
               value={form.quality}
               onChange={(e) => setForm({ ...form, quality: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Batch (GX, M, PK, MOMO)"
+              value={form.batch}
+              onChange={(e) => setForm({ ...form, batch: e.target.value })}
+            />
+            <label className="text-xs font-semibold text-muted-foreground">
+              Cena CNY (¥) — przelicza PLN
+              <input
+                className={`${input} mt-1`}
+                type="number"
+                value={Math.round(cnyFromPln(Number(form.price) || 0) * 100) / 100 || ""}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    price: Math.round(plnFromCny(Number(e.target.value) || 0) * 100) / 100,
+                  })
+                }
+              />
+            </label>
+            <input
+              className={input}
+              placeholder="Link do filmu TikTok (opcjonalnie)"
+              value={form.tiktok_url}
+              onChange={(e) => setForm({ ...form, tiktok_url: e.target.value })}
+            />
+            <input
+              className={input}
+              type="number"
+              placeholder="Kolejność wyświetlania"
+              value={form.display_order}
+              onChange={(e) => setForm({ ...form, display_order: Number(e.target.value) })}
             />
             <input
               className={input}
@@ -918,6 +990,65 @@ function ProductsTab() {
               folder="products"
               onChange={(u) => setForm({ ...form, images: u.join(", ") })}
             />
+          </div>
+
+          <div className="mt-4 rounded-xl border border-dashed border-border bg-secondary/40 p-3">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Pobierz dane z linku
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <input
+                className={`${input} flex-1`}
+                placeholder="Wklej link do produktu (Taobao, Weidian, ...)"
+                value={scrapeUrl}
+                onChange={(e) => setScrapeUrl(e.target.value)}
+              />
+              <button className={btn} onClick={() => void runScrape()}>
+                Pobierz
+              </button>
+            </div>
+            {scrapeMsg ? <p className="mt-2 text-xs text-brand-cyan">{scrapeMsg}</p> : null}
+          </div>
+
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Statystyki (tylko Super Admin)
+          </h3>
+          <div className="mt-2 grid gap-3 sm:grid-cols-4">
+            <label className="text-xs font-semibold text-muted-foreground">
+              👍 Polubienia
+              <input
+                className={`${input} mt-1`}
+                type="number"
+                value={form.likes}
+                onChange={(e) => setForm({ ...form, likes: Number(e.target.value) })}
+              />
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              👎 Dyslajki
+              <input
+                className={`${input} mt-1`}
+                type="number"
+                value={form.dislikes}
+                onChange={(e) => setForm({ ...form, dislikes: Number(e.target.value) })}
+              />
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              👁 Wyświetlenia
+              <input
+                className={`${input} mt-1`}
+                type="number"
+                value={form.views}
+                onChange={(e) => setForm({ ...form, views: Number(e.target.value) })}
+              />
+            </label>
+            <label className="flex items-end gap-2 text-xs font-semibold text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={form.promoted}
+                onChange={(e) => setForm({ ...form, promoted: e.target.checked })}
+              />
+              Promowany
+            </label>
           </div>
 
           <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -973,6 +1104,32 @@ function ProductsTab() {
               <span className="text-xs text-muted-foreground">{p.category}</span>
               <button
                 className={btnGhost}
+                aria-label="W górę"
+                onClick={async () => {
+                  await supabase
+                    .from("products")
+                    .update({ display_order: (p.display_order ?? 0) - 1 })
+                    .eq("id", p.id);
+                  await refresh("products");
+                }}
+              >
+                ↑
+              </button>
+              <button
+                className={btnGhost}
+                aria-label="W dół"
+                onClick={async () => {
+                  await supabase
+                    .from("products")
+                    .update({ display_order: (p.display_order ?? 0) + 1 })
+                    .eq("id", p.id);
+                  await refresh("products");
+                }}
+              >
+                ↓
+              </button>
+              <button
+                className={btnGhost}
                 onClick={() =>
                   setForm({
                     id: p.id,
@@ -982,9 +1139,16 @@ function ProductsTab() {
                     image_url: p.image_url ?? "",
                     qc_url: p.qc_url ?? "",
                     quality: p.quality,
+                    batch: p.batch ?? "",
                     sizes: (p.sizes ?? []).join(", "),
                     images: (p.images ?? []).join(", "),
                     seller_id: p.seller_id ?? "",
+                    tiktok_url: p.tiktok_url ?? "",
+                    display_order: p.display_order ?? 0,
+                    promoted: p.promoted,
+                    likes: p.likes,
+                    dislikes: p.dislikes,
+                    views: p.views,
                     agent_links: p.agent_links ?? {},
                   })
                 }
@@ -1020,6 +1184,7 @@ function SellersTab() {
     logo_url: "",
     banner_url: "",
     description: "",
+    external_url: "",
     active: true,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
@@ -1036,6 +1201,7 @@ function SellersTab() {
       logo_url: form.logo_url,
       banner_url: form.banner_url,
       description: form.description,
+      external_url: form.external_url,
       active: form.active,
     };
     const withPass = form.password
@@ -1081,6 +1247,12 @@ function SellersTab() {
             placeholder={form.id ? "Nowe hasło (opcjonalnie)" : "Hasło"}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+          <input
+            className={input}
+            placeholder="Zewnętrzny link sklepu (Yupoo itp.)"
+            value={form.external_url}
+            onChange={(e) => setForm({ ...form, external_url: e.target.value })}
           />
           <textarea
             className={`${input} min-h-20`}
@@ -1156,6 +1328,7 @@ function SellersTab() {
                     logo_url: s.logo_url ?? "",
                     banner_url: s.banner_url ?? "",
                     description: s.description,
+                    external_url: s.external_url ?? "",
                     active: s.active,
                   })
                 }
