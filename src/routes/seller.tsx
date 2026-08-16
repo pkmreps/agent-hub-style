@@ -132,6 +132,7 @@ function StoreBranding({ seller }: { seller: Seller }) {
     logo_url: seller.logo_url ?? "",
     banner_url: seller.banner_url ?? "",
     external_url: seller.external_url ?? "",
+    link_mode: seller.link_mode ?? "agents",
   });
   const [msg, setMsg] = useState("");
 
@@ -169,6 +170,17 @@ function StoreBranding({ seller }: { seller: Seller }) {
           value={form.external_url}
           onChange={(e) => setForm({ ...form, external_url: e.target.value })}
         />
+        <label className="text-xs font-semibold text-muted-foreground">
+          Jak sprzedajesz?
+          <select
+            className={`${input} mt-1`}
+            value={form.link_mode}
+            onChange={(e) => setForm({ ...form, link_mode: e.target.value })}
+          >
+            <option value="agents">Linki agentów przy produktach</option>
+            <option value="external">Tylko zewnętrzny sklep / Yupoo</option>
+          </select>
+        </label>
         <textarea
           className={`${input} min-h-20 sm:col-span-2`}
           placeholder="Opis sklepu"
@@ -228,6 +240,8 @@ function SellerProducts({ seller }: { seller: Seller }) {
     display_order: 0,
     sizes: "",
     images: "",
+    store_url: "",
+    store_name: "",
     agent_links: {} as Record<string, string>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
@@ -249,6 +263,8 @@ function SellerProducts({ seller }: { seller: Seller }) {
       sizes: parseList(form.sizes),
       images: galleryUrls,
       agent_links: form.agent_links,
+      store_url: form.store_url,
+      store_name: form.store_name,
       seller_id: seller.id,
     };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
@@ -276,6 +292,8 @@ function SellerProducts({ seller }: { seller: Seller }) {
     tiktok_url: null,
     price_cny: 0,
     promoted: false,
+    store_url: form.store_url,
+    store_name: form.store_name,
   };
 
   return (
@@ -289,6 +307,18 @@ function SellerProducts({ seller }: { seller: Seller }) {
               placeholder="Tytuł"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Link do Twojego Yupoo / sklepu (opcjonalnie)"
+              value={form.store_url}
+              onChange={(e) => setForm({ ...form, store_url: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Nazwa sklepu na przycisku (np. MOMO Yupoo)"
+              value={form.store_name}
+              onChange={(e) => setForm({ ...form, store_name: e.target.value })}
             />
             <select
               className={input}
@@ -403,7 +433,7 @@ function SellerProducts({ seller }: { seller: Seller }) {
 
         <div className="rounded-2xl border border-border bg-surface p-6">
           <h2 className="mb-4 text-lg font-bold">Podgląd na żywo</h2>
-          <ProductCard product={preview} agents={agents ?? []} />
+          <ProductCard product={preview} />
         </div>
       </div>
 
@@ -460,6 +490,8 @@ function SellerProducts({ seller }: { seller: Seller }) {
                     display_order: p.display_order ?? 0,
                     sizes: (p.sizes ?? []).join(", "),
                     images: (p.images ?? []).join(", "),
+                    store_url: p.store_url ?? "",
+                    store_name: p.store_name ?? "",
                     agent_links: p.agent_links ?? {},
                   })
                 }

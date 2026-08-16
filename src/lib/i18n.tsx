@@ -5,6 +5,7 @@ export type Lang = "pl" | "en";
 
 const dict: Record<string, { pl: string; en: string }> = {
   "nav.finder": { pl: "Product Finder", en: "Product Finder" },
+  "nav.outfits": { pl: "Losowanie outfitów", en: "Outfit roll" },
   "nav.sellers": { pl: "Sprzedawcy", en: "Stores" },
   "nav.agents": { pl: "Agenci", en: "Agents" },
   "nav.promos": { pl: "Promocje", en: "Deals" },

@@ -20,6 +20,7 @@ import {
   useSellers,
   useSettings,
   useShippingRates,
+  WEIGHT_STEPS,
   useSocialLinks,
   type Product,
 } from "@/lib/store";
@@ -246,7 +247,7 @@ function BrandingTab() {
 function SocialLinksManager() {
   const { data: links } = useSocialLinks();
   const refresh = useRefresh();
-  const empty = { label: "", url: "", icon: "", sort_order: 0 };
+  const empty = { label: "", url: "", icon: "", image_url: "", sort_order: 0 };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
 
   const save = async () => {
@@ -264,7 +265,7 @@ function SocialLinksManager() {
         Dodawaj, edytuj i usuwaj dowolne social media — pojawiają się na stronie i w pływającej
         wyspie.
       </p>
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <input
           className={input}
           placeholder="Nazwa (TikTok)"
@@ -283,6 +284,21 @@ function SocialLinksManager() {
           value={form.icon}
           onChange={(e) => setForm({ ...form, icon: e.target.value })}
         />
+        <input
+          className={input}
+          placeholder="Własne zdjęcie / ikona (URL)"
+          value={form.image_url}
+          onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+        />
+        <div className="sm:col-span-2">
+          <ImageUploader
+            urls={form.image_url ? [form.image_url] : []}
+            multiple={false}
+            folder="social"
+            label="Zdjęcie ikony z urządzenia"
+            onChange={(u) => setForm({ ...form, image_url: u[0] ?? "" })}
+          />
+        </div>
         <div className="flex gap-2">
           <button className={btn} onClick={() => void save()}>
             {form.id ? "Zapisz" : "Dodaj"}
@@ -300,8 +316,13 @@ function SocialLinksManager() {
             key={l.id}
             className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs"
           >
-            <span className="font-semibold">
-              {l.icon || "•"} {l.label}
+            <span className="flex items-center gap-2 font-semibold">
+              {l.image_url ? (
+                <img src={l.image_url} alt="" className="h-5 w-5 rounded object-cover" />
+              ) : (
+                <span>{l.icon || "•"}</span>
+              )}
+              {l.label}
             </span>
             <button
               className="text-primary"
@@ -311,6 +332,7 @@ function SocialLinksManager() {
                   label: l.label,
                   url: l.url,
                   icon: l.icon,
+                  image_url: l.image_url ?? "",
                   sort_order: l.sort_order,
                 })
               }
@@ -470,9 +492,10 @@ function ShippingTab() {
     line_name: "Standard",
     base_price: 0,
     price_per_kg: 0,
-    min_weight: 0,
-    max_weight: 30,
+    min_weight: 0.5,
+    max_weight: 25,
     sort_order: 0,
+    price_table: {} as Record<string, number>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
 
@@ -549,6 +572,41 @@ function ShippingTab() {
             />
           </label>
         </div>
+        <div className="mt-5 rounded-xl border border-dashed border-border bg-secondary/40 p-3">
+          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Ceny wg wagi (0.5 – 25 kg)
+          </p>
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            Wpisz cenę w PLN dla wybranych wag. Puste pola są pomijane — wtedy liczy się wzór
+            bazowy.
+          </p>
+          <div className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+            {WEIGHT_STEPS.map((w) => (
+              <label
+                key={w}
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1"
+              >
+                <span className="w-12 shrink-0 text-[11px] font-bold text-muted-foreground">
+                  {w} kg
+                </span>
+                <input
+                  className="w-full bg-transparent text-xs outline-none"
+                  type="number"
+                  min={0}
+                  placeholder="—"
+                  value={form.price_table[String(w)] ?? ""}
+                  onChange={(e) => {
+                    const next = { ...form.price_table };
+                    if (e.target.value === "") delete next[String(w)];
+                    else next[String(w)] = Number(e.target.value);
+                    setForm({ ...form, price_table: next });
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-4 flex gap-2">
           <button className={btn} onClick={() => void save()}>
             Zapisz
@@ -589,6 +647,7 @@ function ShippingTab() {
                     min_weight: r.min_weight,
                     max_weight: r.max_weight,
                     sort_order: r.sort_order,
+                    price_table: r.price_table ?? {},
                   })
                 }
               >
@@ -790,6 +849,8 @@ function ProductsTab() {
     likes: 0,
     dislikes: 0,
     views: 0,
+    store_url: "",
+    store_name: "",
     agent_links: {} as Record<string, string>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
@@ -838,6 +899,8 @@ function ProductsTab() {
       likes: Number(form.likes) || 0,
       dislikes: Number(form.dislikes) || 0,
       views: Number(form.views) || 0,
+      store_url: form.store_url,
+      store_name: form.store_name,
       agent_links: form.agent_links,
     };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
@@ -865,6 +928,8 @@ function ProductsTab() {
     tiktok_url: form.tiktok_url || null,
     price_cny: cnyFromPln(Number(form.price) || 0),
     promoted: form.promoted,
+    store_url: form.store_url ?? "",
+    store_name: form.store_name ?? "",
   };
 
   return (
@@ -944,6 +1009,18 @@ function ProductsTab() {
               placeholder="Zdjęcie URL"
               value={form.image_url ?? ""}
               onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Link do sklepu Yupoo (zamiast agenta, opcjonalnie)"
+              value={form.store_url}
+              onChange={(e) => setForm({ ...form, store_url: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Nazwa sklepu na przycisku (np. MOMO Yupoo)"
+              value={form.store_name}
+              onChange={(e) => setForm({ ...form, store_name: e.target.value })}
             />
             <input
               className={input}
@@ -1085,7 +1162,7 @@ function ProductsTab() {
 
         <div className="rounded-2xl border border-border bg-surface p-6">
           <h2 className="mb-4 text-lg font-bold">Podgląd na żywo</h2>
-          <ProductCard product={preview} agents={agents ?? []} />
+          <ProductCard product={preview} />
         </div>
       </div>
 
@@ -1149,6 +1226,8 @@ function ProductsTab() {
                     likes: p.likes,
                     dislikes: p.dislikes,
                     views: p.views,
+                    store_url: p.store_url ?? "",
+                    store_name: p.store_name ?? "",
                     agent_links: p.agent_links ?? {},
                   })
                 }

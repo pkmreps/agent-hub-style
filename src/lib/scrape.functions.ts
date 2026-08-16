@@ -29,26 +29,67 @@ export const scrapeProduct = createServerFn({ method: "POST" })
       return html.match(re)?.[1] ?? html.match(alt)?.[1] ?? "";
     };
 
-    const title =
-      meta("og:title") || html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() || "";
+    // JSON-LD is the most reliable source when a shop provides it.
+    let ldTitle = "";
+    let ldImages: string[] = [];
+    let ldPrice = 0;
+    for (const m of html.matchAll(
+      /<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi,
+    )) {
+      try {
+        const parsed = JSON.parse((m[1] ?? "").trim());
+        const nodes = Array.isArray(parsed) ? parsed : [parsed, ...(parsed["@graph"] ?? [])];
+        for (const node of nodes) {
+          if (!node || typeof node !== "object") continue;
+          if (node.name && !ldTitle) ldTitle = String(node.name);
+          const img = node.image;
+          if (img) ldImages.push(...(Array.isArray(img) ? img.map(String) : [String(img)]));
+          const offers = Array.isArray(node.offers) ? node.offers[0] : node.offers;
+          if (offers?.price && !ldPrice) ldPrice = Number(offers.price) || 0;
+        }
+      } catch {
+        /* ignore malformed JSON-LD */
+      }
+    }
+
+    const title = (
+      ldTitle ||
+      meta("og:title") ||
+      html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ||
+      ""
+    )
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const junk =
+      /(logo|icon|avatar|sprite|placeholder|banner|qrcode|wechat|footer|header|flag|payment)/i;
 
     const images = Array.from(
       new Set(
         [
+          ...ldImages,
           meta("og:image"),
-          ...Array.from(html.matchAll(/<img[^>]+src=["'](https?:\/\/[^"']+\.(?:jpe?g|png|webp))/gi)).map(
-            (m) => m[1] as string,
-          ),
-        ].filter(Boolean),
+          ...Array.from(
+            html.matchAll(
+              /<img[^>]+(?:data-src|data-original|data-lazy-src|src)=["'](https?:\/\/[^"']+?\.(?:jpe?g|png|webp))/gi,
+            ),
+          ).map((m) => m[1] as string),
+          ...Array.from(
+            html.matchAll(/["'](https?:\/\/[^"']*?(?:img|image|pic|cdn)[^"']*?\.(?:jpe?g|png|webp))["']/gi),
+          ).map((m) => m[1] as string),
+        ]
+          .filter(Boolean)
+          .map((u) => u.replace(/&amp;/g, "&"))
+          .filter((u) => !junk.test(u)),
       ),
-    ).slice(0, 8);
+    ).slice(0, 10);
 
     const priceRaw =
       meta("og:price:amount") ||
       meta("product:price:amount") ||
-      html.match(/["'](?:price|salePrice)["']\s*:\s*["']?([0-9]+(?:\.[0-9]+)?)/i)?.[1] ||
+      html.match(/["'](?:price|salePrice|minPrice|price_min)["']\s*:\s*["']?([0-9]+(?:\.[0-9]+)?)/i)?.[1] ||
       "";
-    const priceCny = Number(priceRaw) || 0;
+    const priceCny = ldPrice || Number(priceRaw) || 0;
 
     const sizes = Array.from(
       new Set(
@@ -60,3 +101,4 @@ export const scrapeProduct = createServerFn({ method: "POST" })
 
     return { ok: true as const, title, images, priceCny, sizes };
   });
+

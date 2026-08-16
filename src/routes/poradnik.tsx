@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useGuideSteps } from "@/lib/store";
+import { HaulCalculator } from "@/components/HaulCalculator";
 
 export const Route = createFileRoute("/poradnik")({
   head: () => ({
@@ -162,6 +163,10 @@ function PoradnikPage() {
         <PackageTracker />
         <QcInspector />
         <LinkConverter />
+      </section>
+
+      <section className="mt-8">
+        <HaulCalculator />
       </section>
 
       <section className="mt-14">

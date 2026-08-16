@@ -4,6 +4,7 @@ import { useLang } from "@/lib/i18n";
 
 const tabs = [
   { to: "/", key: "nav.finder" },
+  { to: "/outfity", key: "nav.outfits" },
   { to: "/sprzedawcy", key: "nav.sellers" },
   { to: "/agenci", key: "nav.agents" },
   { to: "/promocje", key: "nav.promos" },
