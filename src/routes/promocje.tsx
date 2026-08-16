@@ -1,18 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAgents, useSettings } from "@/lib/store";
+import { usePromos } from "@/lib/store";
 
 export const Route = createFileRoute("/promocje")({
   head: () => ({
     meta: [
-      { title: "Promocje i kupony agentów — PKMREPS" },
+      { title: "Promocje sklepów i produktów — PKMREPS" },
       {
         name: "description",
-        content: "Aktualne kupony rejestracyjne i zniżki u agentów: Litbuy, Kakaobuy, USFans.",
+        content:
+          "Aktualne promocje sprzedawców i produktów: przeceny, wyprzedaże i limitowane oferty.",
       },
-      { property: "og:title", content: "Promocje i kupony agentów — PKMREPS" },
+      { property: "og:title", content: "Promocje sklepów i produktów — PKMREPS" },
       {
         property: "og:description",
-        content: "Odbierz $450 w kuponach i 40% zniżki z kodem PKMR.",
+        content: "Linki do sklepów i produktów z informacją o aktualnych promocjach.",
       },
     ],
   }),
@@ -20,45 +21,58 @@ export const Route = createFileRoute("/promocje")({
 });
 
 function PromocjePage() {
-  const { data: agents } = useAgents();
-  const { data: settings } = useSettings();
-  const code = settings?.["promo_code"] || "PKMR";
+  const { data: promos } = usePromos();
+  const list = promos ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <h1 className="text-3xl font-black">
         Aktualne <span className="text-gradient-brand">promocje</span>
       </h1>
-      <div className="mt-6 rounded-2xl border border-primary/40 bg-surface p-6 glow-ring">
-        <p className="text-sm uppercase tracking-widest text-primary animate-pulse-glow">
-          Limitowana oferta
-        </p>
-        <p className="mt-2 text-2xl font-black">$450 w kuponach + 40% zniżki</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Użyj kodu <span className="font-mono font-bold text-primary">{code}</span> przy
-          rejestracji.
-        </p>
-      </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Sklepy i produkty z aktywnymi przecenami — dodawane na bieżąco.
+      </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {(agents ?? []).map((a) => (
-          <a
-            key={a.id}
-            href={a.referral_url}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-5 transition-all hover:-translate-y-1 hover:border-primary hover:glow-ring"
-          >
-            {a.avatar_url ? (
-              <img src={a.avatar_url} alt={a.name} className="h-11 w-11 rounded-xl object-cover" />
-            ) : null}
-            <div>
-              <p className="font-bold">{a.name}</p>
-              <p className="text-xs text-muted-foreground">Zarejestruj się i odbierz kupony</p>
-            </div>
-          </a>
-        ))}
-      </div>
+      {list.length === 0 ? (
+        <p className="mt-8 rounded-2xl border border-border bg-surface p-10 text-center text-sm text-muted-foreground">
+          Brak aktywnych promocji. Zajrzyj później.
+        </p>
+      ) : (
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((p) => (
+            <article
+              key={p.id}
+              className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-1 hover:border-primary hover:glow-ring"
+            >
+              {p.image_url ? (
+                <img
+                  src={p.image_url}
+                  alt={p.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-video w-full object-cover"
+                />
+              ) : null}
+              <div className="flex flex-1 flex-col gap-2 p-5">
+                <h2 className="text-base font-bold">{p.title}</h2>
+                {p.description ? (
+                  <p className="text-xs leading-relaxed text-muted-foreground">{p.description}</p>
+                ) : null}
+                {p.link_url ? (
+                  <a
+                    href={p.link_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-auto rounded-lg gradient-brand px-4 py-2 text-center text-xs font-extrabold uppercase tracking-wide text-surface-deep transition-all hover:brightness-110"
+                  >
+                    Sprawdź promocję →
+                  </a>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
