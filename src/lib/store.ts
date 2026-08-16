@@ -36,6 +36,8 @@ export type Product = {
   tiktok_url: string | null;
   price_cny: number;
   promoted: boolean;
+  store_url: string;
+  store_name: string;
 };
 
 export type Promo = {
@@ -52,6 +54,7 @@ export type SocialLink = {
   label: string;
   url: string;
   icon: string;
+  image_url: string | null;
   sort_order: number;
 };
 
@@ -64,6 +67,8 @@ export type ShippingRate = {
   min_weight: number;
   max_weight: number;
   sort_order: number;
+  /** Optional per-weight price map, e.g. { "0.5": 45, "1": 60, "1.5": 78 }. */
+  price_table: Record<string, number>;
 };
 
 /** Fixed conversion rates used across the catalog. */
@@ -95,6 +100,8 @@ export type Seller = {
   description: string;
   active: boolean;
   external_url: string;
+  /** "agents" = pokazuj linki agentów, "external" = tylko zewnętrzny sklep / Yupoo. */
+  link_mode: string;
 };
 
 export type GuideStep = {
@@ -177,6 +184,8 @@ export const useProducts = () =>
         display_order: p.display_order ?? 0,
         price_cny: Number(p.price_cny ?? 0),
         promoted: Boolean(p.promoted),
+        store_url: p.store_url ?? "",
+        store_name: p.store_name ?? "",
       })) as Product[];
     },
   });
@@ -357,6 +366,7 @@ export const useShippingRates = () =>
         price_per_kg: Number(r.price_per_kg),
         min_weight: Number(r.min_weight),
         max_weight: Number(r.max_weight),
+        price_table: (r.price_table ?? {}) as Record<string, number>,
       })) as ShippingRate[];
     },
   });
@@ -364,5 +374,20 @@ export const useShippingRates = () =>
 /** Shipping cost for a weight, or null when the line does not cover that weight. */
 export function shippingCost(rate: ShippingRate, kg: number): number | null {
   if (kg < rate.min_weight || kg > rate.max_weight) return null;
+  const table = rate.price_table ?? {};
+  const exact = table[String(kg)];
+  if (typeof exact === "number" && exact > 0) return exact;
+  const keys = Object.keys(table)
+    .map(Number)
+    .filter((k) => Number.isFinite(k) && Number(table[String(k)]) > 0)
+    .sort((a, b) => a - b);
+  if (keys.length) {
+    const upper = keys.find((k) => k >= kg);
+    if (upper !== undefined) return Number(table[String(upper)]);
+    return Number(table[String(keys[keys.length - 1]!)]);
+  }
   return rate.base_price + rate.price_per_kg * kg;
 }
+
+/** Dostępne wagi: 0.5 kg – 25 kg co pół kilograma. */
+export const WEIGHT_STEPS = Array.from({ length: 50 }, (_, i) => (i + 1) * 0.5);
