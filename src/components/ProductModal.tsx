@@ -99,6 +99,16 @@ export function ProductModal({
             ) : null}
 
             <div className="grid gap-2">
+              {product.store_url ? (
+                <a
+                  href={product.store_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-lg gradient-brand px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide text-surface-deep transition-all hover:brightness-110"
+                >
+                  Wejdź na sklep {product.store_name || "Yupoo"} →
+                </a>
+              ) : null}
               {agents.map((a) => {
                 const href = product.agent_links?.[a.name] || a.referral_url;
                 return (
@@ -107,7 +117,7 @@ export function ProductModal({
                     href={href}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center justify-center gap-2 rounded-lg gradient-brand px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide text-surface-deep"
+                    className="flex items-center justify-center gap-2 rounded-lg gradient-brand px-3 py-2.5 text-xs font-extrabold uppercase tracking-wide text-surface-deep transition-all hover:brightness-110"
                   >
                     {a.avatar_url ? (
                       <img src={a.avatar_url} alt="" className="h-5 w-5 rounded-md object-cover" />
@@ -118,6 +128,7 @@ export function ProductModal({
                 );
               })}
             </div>
+
 
             {product.qc_url ? (
               <a
