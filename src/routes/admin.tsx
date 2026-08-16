@@ -790,6 +790,8 @@ function ProductsTab() {
     likes: 0,
     dislikes: 0,
     views: 0,
+    store_url: "",
+    store_name: "",
     agent_links: {} as Record<string, string>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
@@ -838,6 +840,8 @@ function ProductsTab() {
       likes: Number(form.likes) || 0,
       dislikes: Number(form.dislikes) || 0,
       views: Number(form.views) || 0,
+      store_url: form.store_url,
+      store_name: form.store_name,
       agent_links: form.agent_links,
     };
     if (form.id) await supabase.from("products").update(payload).eq("id", form.id);
@@ -946,6 +950,18 @@ function ProductsTab() {
               placeholder="Zdjęcie URL"
               value={form.image_url ?? ""}
               onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Link do sklepu Yupoo (zamiast agenta, opcjonalnie)"
+              value={form.store_url}
+              onChange={(e) => setForm({ ...form, store_url: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Nazwa sklepu na przycisku (np. MOMO Yupoo)"
+              value={form.store_name}
+              onChange={(e) => setForm({ ...form, store_name: e.target.value })}
             />
             <input
               className={input}
