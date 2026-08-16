@@ -1,26 +1,22 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PriceTags, QualityBadges } from "@/components/PriceTags";
-import type { Agent, Product } from "@/lib/store";
+import type { Product } from "@/lib/store";
 
+/**
+ * Lightweight grid card: single image + engagement, title, category, badges,
+ * price and a "Sprawdź" CTA. Colorways / sizes / agent links live in the modal.
+ */
 export function ProductCard({
   product,
-  agents,
   onDetails,
 }: {
   product: Product;
-  agents: Agent[];
   onDetails?: (p: Product) => void;
 }) {
   const [likes, setLikes] = useState(product.likes);
   const [dislikes, setDislikes] = useState(product.dislikes);
   const [wish, setWish] = useState(false);
-
-  const gallery = [product.image_url, ...(product.images ?? [])].filter(
-    (u): u is string => Boolean(u),
-  );
-  const [active, setActive] = useState(0);
-  const current = gallery[active] ?? null;
 
   const vote = async (kind: "likes" | "dislikes") => {
     const next = kind === "likes" ? likes + 1 : dislikes + 1;
@@ -32,15 +28,15 @@ export function ProductCard({
       .eq("id", product.id);
   };
 
-
   return (
-    <article className="group overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-1 hover:border-primary/60 hover:glow-ring">
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-1 hover:border-primary/60 hover:glow-ring">
       <div className="relative aspect-square overflow-hidden bg-secondary">
-        {current ? (
+        {product.image_url ? (
           <img
-            src={current}
+            src={product.image_url}
             alt={product.title}
             loading="lazy"
+            decoding="async"
             onClick={() => onDetails?.(product)}
             className="h-full w-full cursor-pointer object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -53,7 +49,7 @@ export function ProductCard({
         <button
           aria-label="Dodaj do ulubionych"
           onClick={() => setWish((w) => !w)}
-          className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-deep/70 backdrop-blur transition-colors hover:border-primary"
+          className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-deep/70 backdrop-blur transition-all hover:border-primary hover:glow-ring"
         >
           <span className={wish ? "text-primary" : "text-muted-foreground"}>♥</span>
         </button>
@@ -62,14 +58,14 @@ export function ProductCard({
           <button
             aria-label="Lubię to"
             onClick={() => void vote("likes")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-deep/70 text-sm backdrop-blur hover:border-primary"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-deep/70 text-sm backdrop-blur transition-all hover:border-primary hover:glow-ring"
           >
             👍
           </button>
           <button
             aria-label="Nie lubię"
             onClick={() => void vote("dislikes")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-deep/70 text-sm backdrop-blur hover:border-primary"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-deep/70 text-sm backdrop-blur transition-all hover:border-primary hover:glow-ring"
           >
             👎
           </button>
@@ -82,35 +78,8 @@ export function ProductCard({
         </div>
       </div>
 
-      <div className="space-y-3 p-4">
+      <div className="flex flex-1 flex-col gap-2.5 p-4">
         <h3 className="line-clamp-2 text-sm font-semibold">{product.title}</h3>
-        {gallery.length > 1 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {gallery.map((url, i) => (
-              <button
-                key={`${url}-${i}`}
-                onClick={() => setActive(i)}
-                aria-label={`Kolorystyka ${i + 1}`}
-                className={`h-9 w-9 overflow-hidden rounded-md border ${i === active ? "border-primary glow-ring" : "border-border"}`}
-              >
-                <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        {product.sizes?.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {product.sizes.map((size) => (
-              <span
-                key={size}
-                className="rounded-md border border-brand-teal/40 bg-secondary px-2 py-0.5 text-[11px] font-semibold text-brand-cyan"
-              >
-                {size}
-              </span>
-            ))}
-          </div>
-        ) : null}
 
         <div className="flex flex-wrap gap-1.5">
           <span className="rounded-md border border-border bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
@@ -119,47 +88,14 @@ export function ProductCard({
         </div>
         <QualityBadges quality={product.quality} batch={product.batch} />
 
-        <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-3">
           <PriceTags pln={Number(product.price)} />
-          <div className="flex items-center gap-2">
-            {product.qc_url ? (
-              <a
-                href={product.qc_url}
-                target="_blank"
-                rel="noreferrer"
-                title="Zdjęcia QC"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs hover:border-primary hover:text-primary"
-              >
-                📷
-              </a>
-            ) : null}
-            <button
-              onClick={() => onDetails?.(product)}
-              className="rounded-lg gradient-brand px-3 py-1.5 text-xs font-bold text-surface-deep"
-            >
-              Sprawdź →
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-1.5">
-          {agents.map((a) => {
-            const href = product.agent_links?.[a.name] || a.referral_url;
-            return (
-              <a
-                key={a.id}
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors hover:border-primary hover:text-primary"
-              >
-                {a.avatar_url ? (
-                  <img src={a.avatar_url} alt="" className="h-5 w-5 rounded-md object-cover" />
-                ) : null}
-                Kup przez {a.name}
-              </a>
-            );
-          })}
+          <button
+            onClick={() => onDetails?.(product)}
+            className="rounded-lg gradient-brand px-3 py-1.5 text-xs font-bold text-surface-deep transition-all hover:-translate-y-0.5 hover:glow-ring-strong hover:brightness-110"
+          >
+            Sprawdź →
+          </button>
         </div>
       </div>
     </article>
