@@ -490,6 +490,8 @@ function SellerProducts({ seller }: { seller: Seller }) {
                     display_order: p.display_order ?? 0,
                     sizes: (p.sizes ?? []).join(", "),
                     images: (p.images ?? []).join(", "),
+                    store_url: p.store_url ?? "",
+                    store_name: p.store_name ?? "",
                     agent_links: p.agent_links ?? {},
                   })
                 }

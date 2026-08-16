@@ -1167,6 +1167,8 @@ function ProductsTab() {
                     likes: p.likes,
                     dislikes: p.dislikes,
                     views: p.views,
+                    store_url: p.store_url ?? "",
+                    store_name: p.store_name ?? "",
                     agent_links: p.agent_links ?? {},
                   })
                 }
