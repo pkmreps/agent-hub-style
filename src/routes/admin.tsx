@@ -246,7 +246,7 @@ function BrandingTab() {
 function SocialLinksManager() {
   const { data: links } = useSocialLinks();
   const refresh = useRefresh();
-  const empty = { label: "", url: "", icon: "", sort_order: 0 };
+  const empty = { label: "", url: "", icon: "", image_url: "", sort_order: 0 };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
 
   const save = async () => {
@@ -264,7 +264,7 @@ function SocialLinksManager() {
         Dodawaj, edytuj i usuwaj dowolne social media — pojawiają się na stronie i w pływającej
         wyspie.
       </p>
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <input
           className={input}
           placeholder="Nazwa (TikTok)"
@@ -283,6 +283,21 @@ function SocialLinksManager() {
           value={form.icon}
           onChange={(e) => setForm({ ...form, icon: e.target.value })}
         />
+        <input
+          className={input}
+          placeholder="Własne zdjęcie / ikona (URL)"
+          value={form.image_url}
+          onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+        />
+        <div className="sm:col-span-2">
+          <ImageUploader
+            urls={form.image_url ? [form.image_url] : []}
+            multiple={false}
+            folder="social"
+            label="Zdjęcie ikony z urządzenia"
+            onChange={(u) => setForm({ ...form, image_url: u[0] ?? "" })}
+          />
+        </div>
         <div className="flex gap-2">
           <button className={btn} onClick={() => void save()}>
             {form.id ? "Zapisz" : "Dodaj"}
@@ -300,8 +315,13 @@ function SocialLinksManager() {
             key={l.id}
             className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs"
           >
-            <span className="font-semibold">
-              {l.icon || "•"} {l.label}
+            <span className="flex items-center gap-2 font-semibold">
+              {l.image_url ? (
+                <img src={l.image_url} alt="" className="h-5 w-5 rounded object-cover" />
+              ) : (
+                <span>{l.icon || "•"}</span>
+              )}
+              {l.label}
             </span>
             <button
               className="text-primary"
@@ -311,6 +331,7 @@ function SocialLinksManager() {
                   label: l.label,
                   url: l.url,
                   icon: l.icon,
+                  image_url: l.image_url ?? "",
                   sort_order: l.sort_order,
                 })
               }
