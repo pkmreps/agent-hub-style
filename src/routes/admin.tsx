@@ -865,6 +865,8 @@ function ProductsTab() {
     tiktok_url: form.tiktok_url || null,
     price_cny: cnyFromPln(Number(form.price) || 0),
     promoted: form.promoted,
+    store_url: form.store_url ?? "",
+    store_name: form.store_name ?? "",
   };
 
   return (
@@ -1085,7 +1087,7 @@ function ProductsTab() {
 
         <div className="rounded-2xl border border-border bg-surface p-6">
           <h2 className="mb-4 text-lg font-bold">Podgląd na żywo</h2>
-          <ProductCard product={preview} agents={agents ?? []} />
+          <ProductCard product={preview} />
         </div>
       </div>
 

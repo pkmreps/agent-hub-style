@@ -403,7 +403,7 @@ function SellerProducts({ seller }: { seller: Seller }) {
 
         <div className="rounded-2xl border border-border bg-surface p-6">
           <h2 className="mb-4 text-lg font-bold">Podgląd na żywo</h2>
-          <ProductCard product={preview} agents={agents ?? []} />
+          <ProductCard product={preview} />
         </div>
       </div>
 
