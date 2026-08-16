@@ -20,6 +20,7 @@ import {
   useSellers,
   useSettings,
   useShippingRates,
+  WEIGHT_STEPS,
   useSocialLinks,
   type Product,
 } from "@/lib/store";
@@ -491,9 +492,10 @@ function ShippingTab() {
     line_name: "Standard",
     base_price: 0,
     price_per_kg: 0,
-    min_weight: 0,
-    max_weight: 30,
+    min_weight: 0.5,
+    max_weight: 25,
     sort_order: 0,
+    price_table: {} as Record<string, number>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
 
@@ -570,6 +572,41 @@ function ShippingTab() {
             />
           </label>
         </div>
+        <div className="mt-5 rounded-xl border border-dashed border-border bg-secondary/40 p-3">
+          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Ceny wg wagi (0.5 – 25 kg)
+          </p>
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            Wpisz cenę w PLN dla wybranych wag. Puste pola są pomijane — wtedy liczy się wzór
+            bazowy.
+          </p>
+          <div className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+            {WEIGHT_STEPS.map((w) => (
+              <label
+                key={w}
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1"
+              >
+                <span className="w-12 shrink-0 text-[11px] font-bold text-muted-foreground">
+                  {w} kg
+                </span>
+                <input
+                  className="w-full bg-transparent text-xs outline-none"
+                  type="number"
+                  min={0}
+                  placeholder="—"
+                  value={form.price_table[String(w)] ?? ""}
+                  onChange={(e) => {
+                    const next = { ...form.price_table };
+                    if (e.target.value === "") delete next[String(w)];
+                    else next[String(w)] = Number(e.target.value);
+                    setForm({ ...form, price_table: next });
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-4 flex gap-2">
           <button className={btn} onClick={() => void save()}>
             Zapisz
@@ -610,6 +647,7 @@ function ShippingTab() {
                     min_weight: r.min_weight,
                     max_weight: r.max_weight,
                     sort_order: r.sort_order,
+                    price_table: r.price_table ?? {},
                   })
                 }
               >
