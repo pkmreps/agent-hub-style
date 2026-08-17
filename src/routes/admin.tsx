@@ -516,6 +516,73 @@ function ShippingTab() {
         <p className="mb-4 text-xs text-muted-foreground">
           Koszt = cena bazowa + (cena za kg × waga), w granicach przedziału wagowego.
         </p>
+        <div className="mb-4 rounded-xl border border-dashed border-primary/40 bg-secondary/40 p-3">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Agenci wysyłki (nazwa + zdjęcie profilowe)
+          </p>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {(agents ?? []).map((a) => (
+              <button
+                key={a.id}
+                onClick={() => setForm({ ...form, agent_name: a.name })}
+                className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all ${
+                  form.agent_name === a.name
+                    ? "border-primary text-primary glow-ring"
+                    : "border-border text-muted-foreground hover:border-primary"
+                }`}
+              >
+                {a.avatar_url ? (
+                  <img src={a.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+                ) : (
+                  <span className="grid h-6 w-6 place-items-center rounded-full border border-border text-[9px]">
+                    {a.name.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+                {a.name}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              className={input}
+              placeholder="Nowy agent — nazwa"
+              value={newAgent.name}
+              onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Zdjęcie profilowe URL"
+              value={newAgent.avatar_url}
+              onChange={(e) => setNewAgent({ ...newAgent, avatar_url: e.target.value })}
+            />
+          </div>
+          <div className="mt-2">
+            <ImageUploader
+              urls={newAgent.avatar_url ? [newAgent.avatar_url] : []}
+              multiple={false}
+              folder="agents"
+              label="Zdjęcie profilowe z urządzenia"
+              onChange={(u) => setNewAgent({ ...newAgent, avatar_url: u[0] ?? "" })}
+            />
+          </div>
+          <button
+            className={`${btn} mt-2`}
+            onClick={async () => {
+              if (!newAgent.name.trim()) return;
+              await supabase.from("agents").insert({
+                name: newAgent.name.trim(),
+                avatar_url: newAgent.avatar_url || null,
+                referral_url: newAgent.referral_url,
+              });
+              setForm({ ...form, agent_name: newAgent.name.trim() });
+              setNewAgent({ name: "", avatar_url: "", referral_url: "" });
+              await refresh("agents");
+            }}
+          >
+            Dodaj agenta
+          </button>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <input
             className={input}
@@ -529,6 +596,7 @@ function ShippingTab() {
               <option key={a.id} value={a.name} />
             ))}
           </datalist>
+
           <input
             className={input}
             placeholder="Nazwa linii (np. EMS)"
