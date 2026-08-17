@@ -1595,6 +1595,14 @@ function GuideTab() {
             value={form.image_url ?? ""}
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           />
+          <ImageUploader
+            urls={form.image_url ? [form.image_url] : []}
+            multiple={false}
+            folder="guide"
+            label="Grafika z urządzenia / galerii"
+            onChange={(u) => setForm({ ...form, image_url: u[0] ?? "" })}
+          />
+
           <div className="flex gap-2">
             <button className={btn} onClick={() => void save()}>
               Zapisz
