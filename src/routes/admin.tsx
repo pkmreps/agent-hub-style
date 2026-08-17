@@ -857,6 +857,9 @@ function ProductsTab() {
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scrapeMsg, setScrapeMsg] = useState("");
+  const [cny, setCny] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
+
 
   const runScrape = async () => {
     setScrapeMsg("Pobieram dane...");
@@ -872,7 +875,7 @@ function ProductsTab() {
         image_url: f.image_url || (res.images[0] ?? ""),
         images: f.images || res.images.slice(1).join(", "),
         sizes: f.sizes || res.sizes.join(", "),
-        price: f.price || Math.round(plnFromCny(res.priceCny) * 100) / 100,
+        price: f.price || String(Math.round(plnFromCny(res.priceCny) * 100) / 100),
       }));
       setScrapeMsg("Dane pobrane — sprawdź i zapisz.");
     } catch {
@@ -961,10 +964,14 @@ function ProductsTab() {
             </select>
             <input
               className={input}
-              type="number"
+              type="text"
+              inputMode="decimal"
               placeholder="Cena PLN"
               value={form.price}
-              onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+              onChange={(e) => {
+                setCny("");
+                setForm({ ...form, price: e.target.value.replace(",", ".") });
+              }}
             />
             <input
               className={input}
@@ -982,16 +989,26 @@ function ProductsTab() {
               Cena CNY (¥) — przelicza PLN
               <input
                 className={`${input} mt-1`}
-                type="number"
-                value={Math.round(cnyFromPln(Number(form.price) || 0) * 100) / 100 || ""}
-                onChange={(e) =>
+                type="text"
+                inputMode="decimal"
+                value={
+                  cny !== ""
+                    ? cny
+                    : form.price
+                      ? String(Math.round(cnyFromPln(Number(form.price) || 0) * 100) / 100)
+                      : ""
+                }
+                onChange={(e) => {
+                  const v = e.target.value.replace(",", ".");
+                  setCny(v);
                   setForm({
                     ...form,
-                    price: Math.round(plnFromCny(Number(e.target.value) || 0) * 100) / 100,
-                  })
-                }
+                    price: v === "" ? "" : String(Math.round(plnFromCny(Number(v) || 0) * 100) / 100),
+                  });
+                }}
               />
             </label>
+
             <input
               className={input}
               placeholder="Link do filmu TikTok (opcjonalnie)"
@@ -1213,7 +1230,7 @@ function ProductsTab() {
                     id: p.id,
                     title: p.title,
                     category: p.category,
-                    price: p.price,
+                    price: String(p.price),
                     image_url: p.image_url ?? "",
                     qc_url: p.qc_url ?? "",
                     quality: p.quality,
