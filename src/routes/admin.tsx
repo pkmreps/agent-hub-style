@@ -771,12 +771,30 @@ function AgentsTab() {
             value={form.avatar_url ?? ""}
             onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
           />
+          <ImageUploader
+            urls={form.avatar_url ? [form.avatar_url] : []}
+            multiple={false}
+            folder="agents"
+            label="Zdjęcie profilowe z urządzenia"
+            onChange={(u) => setForm({ ...form, avatar_url: u[0] ?? "" })}
+          />
           <input
             className={input}
             placeholder="Link referencyjny"
             value={form.referral_url}
             onChange={(e) => setForm({ ...form, referral_url: e.target.value })}
           />
+          <label className="block text-xs font-semibold text-muted-foreground">
+            Link konwertera (użyj {"{platform}"} i {"{id}"}), np.
+            https://litbuy.com/product?platform={"{platform}"}&amp;id={"{id}"}&amp;ref=PKMR
+            <input
+              className={`${input} mt-1`}
+              placeholder="https://agent.com/product?platform={platform}&id={id}&ref=TWOJ_REF"
+              value={template}
+              onChange={(e) => setTemplate(e.target.value)}
+            />
+          </label>
+
           <div className="flex gap-2">
             <button className={btn} onClick={() => void save()}>
               Zapisz
