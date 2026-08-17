@@ -1185,13 +1185,28 @@ function ProductsTab() {
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-6">
-        <h2 className="mb-4 text-lg font-bold">Wszystkie produkty</h2>
+        <h2 className="mb-1 text-lg font-bold">Wszystkie produkty</h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Przeciągnij kafelek myszką (uchwyt ⠿), aby zmienić kolejność — zapisuje się od razu.
+        </p>
         <ul className="space-y-2">
           {(products ?? []).map((p) => (
             <li
               key={p.id}
-              className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-3"
+              draggable
+              onDragStart={() => setDragId(p.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                void reorder(p.id);
+              }}
+              onDragEnd={() => setDragId(null)}
+              className={`flex cursor-grab items-center gap-3 rounded-lg border bg-secondary p-3 active:cursor-grabbing ${
+                dragId === p.id ? "border-primary opacity-60" : "border-border"
+              }`}
             >
+              <span className="select-none text-base text-muted-foreground">⠿</span>
+
               {p.image_url ? (
                 <img src={p.image_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
               ) : null}
