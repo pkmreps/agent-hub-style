@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useGuideSteps } from "@/lib/store";
+import { useAgents, useGuideSteps, useSettings } from "@/lib/store";
 import { HaulCalculator } from "@/components/HaulCalculator";
 
 export const Route = createFileRoute("/poradnik")({
