@@ -498,6 +498,8 @@ function ShippingTab() {
     price_table: {} as Record<string, number>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+  const [newAgent, setNewAgent] = useState({ name: "", avatar_url: "", referral_url: "" });
+
 
   const save = async () => {
     if (!form.agent_name.trim()) return;
