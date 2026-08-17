@@ -860,6 +860,22 @@ function ProductsTab() {
   const [cny, setCny] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
 
+  /** Przenieś przeciągany produkt na pozycję produktu docelowego i zapisz kolejność. */
+  const reorder = async (targetId: string) => {
+    const list = [...(products ?? [])];
+    const from = list.findIndex((p) => p.id === dragId);
+    const to = list.findIndex((p) => p.id === targetId);
+    if (from < 0 || to < 0 || from === to) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved!);
+    setDragId(null);
+    await Promise.all(
+      list.map((p, i) => supabase.from("products").update({ display_order: i }).eq("id", p.id)),
+    );
+    await refresh("products");
+  };
+
+
 
   const runScrape = async () => {
     setScrapeMsg("Pobieram dane...");
