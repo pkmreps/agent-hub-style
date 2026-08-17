@@ -835,7 +835,8 @@ function ProductsTab() {
   const empty = {
     title: "",
     category: "",
-    price: 0,
+    price: "" as string,
+
     image_url: "",
     qc_url: "",
     quality: "Best",
