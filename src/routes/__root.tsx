@@ -145,7 +145,7 @@ function RootComponent() {
           <Outlet />
           {!isPanel && <FloatingIsland />}
           {!isPanel && <PromoModal />}
-          {!isPanel && <ScrollToTop />}
+          <ScrollToTop />
         </div>
       </LanguageProvider>
     </QueryClientProvider>
