@@ -84,18 +84,24 @@ function Index() {
 
       <Link
         to="/outfity"
-        className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-surface p-5 transition-all hover:-translate-y-0.5 hover:glow-ring"
+        className="group mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/40 bg-surface p-5 transition-all hover:-translate-y-0.5 hover:border-primary hover:glow-ring-strong"
       >
-        <div>
-          <p className="text-sm font-bold">Chcesz wylosować cały outfit?</p>
-          <p className="text-xs text-muted-foreground">
-            Przejdź do generatora i wylosuj kompletny zestaw z katalogu.
-          </p>
+        <div className="flex items-center gap-4">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-primary/50 bg-secondary text-2xl transition-transform group-hover:rotate-12">
+            🎲
+          </span>
+          <div>
+            <p className="text-base font-black">Generator outfitów — wylosuj cały zestaw</p>
+            <p className="text-xs text-muted-foreground">
+              Buty, spodnie, góra i akcesoria w jednym losowaniu, z ceną w PLN, USD i CNY.
+            </p>
+          </div>
         </div>
-        <span className="rounded-lg gradient-brand px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-surface-deep">
-          Losuj outfit 🎲
+        <span className="rounded-lg gradient-brand px-5 py-2.5 text-xs font-extrabold uppercase tracking-wide text-surface-deep transition-transform group-hover:scale-105">
+          Losuj outfit →
         </span>
       </Link>
+
 
       <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-end">
         <label className="flex-1 text-xs font-semibold text-muted-foreground">

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useGuideSteps } from "@/lib/store";
+import { useAgents, useGuideSteps, useSettings } from "@/lib/store";
 import { HaulCalculator } from "@/components/HaulCalculator";
 
 export const Route = createFileRoute("/poradnik")({
@@ -95,19 +95,29 @@ function QcInspector() {
 }
 
 function LinkConverter() {
+  const { data: agents } = useAgents();
+  const { data: settings } = useSettings();
+  const [agent, setAgent] = useState("");
   const [url, setUrl] = useState("");
   const [out, setOut] = useState("");
   const [copied, setCopied] = useState(false);
+
+  const list = agents ?? [];
+  const chosen = agent || list[0]?.name || "";
 
   const convert = () => {
     const raw = url.trim();
     if (!raw) return setOut("");
     const id = raw.match(/(?:id=)(\d+)/)?.[1] ?? raw.match(/(\d{6,})/)?.[1] ?? "";
     const platform = /1688/.test(raw) ? "ali_1688" : /taobao|tmall/.test(raw) ? "taobao" : "weidian";
+    if (!id) return setOut("Nie rozpoznano ID produktu w linku.");
+    const template = settings?.[`converter_${chosen.trim().toLowerCase()}`];
+    if (template) {
+      setOut(template.replaceAll("{platform}", platform).replaceAll("{id}", id));
+      return;
+    }
     setOut(
-      id
-        ? `https://litbuy.com/product?platform=${platform}&id=${id}&ref=PKMR`
-        : "Nie rozpoznano ID produktu w linku.",
+      `https://${chosen.toLowerCase().replace(/\s+/g, "")}.com/product?platform=${platform}&id=${id}`,
     );
   };
 
@@ -115,8 +125,26 @@ function LinkConverter() {
     <div className={card}>
       <h3 className="text-base font-bold">🔗 Smart Link Converter</h3>
       <p className="mt-1 text-xs text-muted-foreground">
-        Zamień link 1688 / Taobao / Weidian na link afiliacyjny agenta.
+        Wybierz agenta i zamień link 1688 / Taobao / Weidian na link afiliacyjny.
       </p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {list.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => setAgent(a.name)}
+            className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-bold transition-all ${
+              chosen === a.name
+                ? "border-primary text-primary glow-ring"
+                : "border-border text-muted-foreground hover:border-primary"
+            }`}
+          >
+            {a.avatar_url ? (
+              <img src={a.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+            ) : null}
+            {a.name}
+          </button>
+        ))}
+      </div>
       <input
         className={`${field} mt-3`}
         placeholder="https://detail.1688.com/offer/123456789.html"
@@ -146,6 +174,7 @@ function LinkConverter() {
     </div>
   );
 }
+
 
 function PoradnikPage() {
   const { data: steps } = useGuideSteps();

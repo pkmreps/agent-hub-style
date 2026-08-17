@@ -29,9 +29,8 @@ function SprzedawcyPage() {
       <h1 className="text-3xl font-black">
         Sklepy <span className="text-gradient-brand">sprzedawców</span>
       </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Multi-vendor platforma — każdy sprzedawca prowadzi własny sklep i asortyment.
-      </p>
+
+
 
       {active.length === 0 ? (
         <p className="mt-8 rounded-2xl border border-border bg-surface p-10 text-center text-sm text-muted-foreground">

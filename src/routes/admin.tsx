@@ -498,6 +498,8 @@ function ShippingTab() {
     price_table: {} as Record<string, number>,
   };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+  const [newAgent, setNewAgent] = useState({ name: "", avatar_url: "", referral_url: "" });
+
 
   const save = async () => {
     if (!form.agent_name.trim()) return;
@@ -516,6 +518,73 @@ function ShippingTab() {
         <p className="mb-4 text-xs text-muted-foreground">
           Koszt = cena bazowa + (cena za kg × waga), w granicach przedziału wagowego.
         </p>
+        <div className="mb-4 rounded-xl border border-dashed border-primary/40 bg-secondary/40 p-3">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Agenci wysyłki (nazwa + zdjęcie profilowe)
+          </p>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {(agents ?? []).map((a) => (
+              <button
+                key={a.id}
+                onClick={() => setForm({ ...form, agent_name: a.name })}
+                className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-all ${
+                  form.agent_name === a.name
+                    ? "border-primary text-primary glow-ring"
+                    : "border-border text-muted-foreground hover:border-primary"
+                }`}
+              >
+                {a.avatar_url ? (
+                  <img src={a.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+                ) : (
+                  <span className="grid h-6 w-6 place-items-center rounded-full border border-border text-[9px]">
+                    {a.name.slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+                {a.name}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              className={input}
+              placeholder="Nowy agent — nazwa"
+              value={newAgent.name}
+              onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })}
+            />
+            <input
+              className={input}
+              placeholder="Zdjęcie profilowe URL"
+              value={newAgent.avatar_url}
+              onChange={(e) => setNewAgent({ ...newAgent, avatar_url: e.target.value })}
+            />
+          </div>
+          <div className="mt-2">
+            <ImageUploader
+              urls={newAgent.avatar_url ? [newAgent.avatar_url] : []}
+              multiple={false}
+              folder="agents"
+              label="Zdjęcie profilowe z urządzenia"
+              onChange={(u) => setNewAgent({ ...newAgent, avatar_url: u[0] ?? "" })}
+            />
+          </div>
+          <button
+            className={`${btn} mt-2`}
+            onClick={async () => {
+              if (!newAgent.name.trim()) return;
+              await supabase.from("agents").insert({
+                name: newAgent.name.trim(),
+                avatar_url: newAgent.avatar_url || null,
+                referral_url: newAgent.referral_url,
+              });
+              setForm({ ...form, agent_name: newAgent.name.trim() });
+              setNewAgent({ name: "", avatar_url: "", referral_url: "" });
+              await refresh("agents");
+            }}
+          >
+            Dodaj agenta
+          </button>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <input
             className={input}
@@ -529,6 +598,7 @@ function ShippingTab() {
               <option key={a.id} value={a.name} />
             ))}
           </datalist>
+
           <input
             className={input}
             placeholder="Nazwa linii (np. EMS)"
@@ -672,17 +742,23 @@ function ShippingTab() {
 
 function AgentsTab() {
   const { data: agents } = useAgents();
+  const { data: settings } = useSettings();
   const refresh = useRefresh();
   const empty = { name: "", avatar_url: "", referral_url: "", sort_order: 0 };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+  const [template, setTemplate] = useState("");
 
   const save = async () => {
     if (!form.name) return;
     if (form.id) await supabase.from("agents").update(form).eq("id", form.id);
     else await supabase.from("agents").insert(form);
+    await saveSetting(`converter_${form.name.trim().toLowerCase()}`, template);
     setForm(empty);
+    setTemplate("");
     await refresh("agents");
+    await refresh("settings");
   };
+
 
   return (
     <section className="grid gap-6 lg:grid-cols-2">
@@ -701,12 +777,30 @@ function AgentsTab() {
             value={form.avatar_url ?? ""}
             onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
           />
+          <ImageUploader
+            urls={form.avatar_url ? [form.avatar_url] : []}
+            multiple={false}
+            folder="agents"
+            label="Zdjęcie profilowe z urządzenia"
+            onChange={(u) => setForm({ ...form, avatar_url: u[0] ?? "" })}
+          />
           <input
             className={input}
             placeholder="Link referencyjny"
             value={form.referral_url}
             onChange={(e) => setForm({ ...form, referral_url: e.target.value })}
           />
+          <label className="block text-xs font-semibold text-muted-foreground">
+            Link konwertera (użyj {"{platform}"} i {"{id}"}), np.
+            https://litbuy.com/product?platform={"{platform}"}&amp;id={"{id}"}&amp;ref=PKMR
+            <input
+              className={`${input} mt-1`}
+              placeholder="https://agent.com/product?platform={platform}&id={id}&ref=TWOJ_REF"
+              value={template}
+              onChange={(e) => setTemplate(e.target.value)}
+            />
+          </label>
+
           <div className="flex gap-2">
             <button className={btn} onClick={() => void save()}>
               Zapisz
@@ -734,15 +828,17 @@ function AgentsTab() {
               <span className="flex-1 text-sm font-semibold">{a.name}</span>
               <button
                 className={btnGhost}
-                onClick={() =>
+                onClick={() => {
                   setForm({
                     id: a.id,
                     name: a.name,
                     avatar_url: a.avatar_url ?? "",
                     referral_url: a.referral_url,
                     sort_order: a.sort_order,
-                  })
-                }
+                  });
+                  setTemplate(settings?.[`converter_${a.name.trim().toLowerCase()}`] ?? "");
+                }}
+
               >
                 Edytuj
               </button>
@@ -835,7 +931,8 @@ function ProductsTab() {
   const empty = {
     title: "",
     category: "",
-    price: 0,
+    price: "" as string,
+
     image_url: "",
     qc_url: "",
     quality: "Best",
@@ -856,6 +953,25 @@ function ProductsTab() {
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scrapeMsg, setScrapeMsg] = useState("");
+  const [cny, setCny] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  /** Przenieś przeciągany produkt na pozycję produktu docelowego i zapisz kolejność. */
+  const reorder = async (targetId: string) => {
+    const list = [...(products ?? [])];
+    const from = list.findIndex((p) => p.id === dragId);
+    const to = list.findIndex((p) => p.id === targetId);
+    if (from < 0 || to < 0 || from === to) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved!);
+    setDragId(null);
+    await Promise.all(
+      list.map((p, i) => supabase.from("products").update({ display_order: i }).eq("id", p.id)),
+    );
+    await refresh("products");
+  };
+
+
 
   const runScrape = async () => {
     setScrapeMsg("Pobieram dane...");
@@ -871,7 +987,7 @@ function ProductsTab() {
         image_url: f.image_url || (res.images[0] ?? ""),
         images: f.images || res.images.slice(1).join(", "),
         sizes: f.sizes || res.sizes.join(", "),
-        price: f.price || Math.round(plnFromCny(res.priceCny) * 100) / 100,
+        price: f.price || String(Math.round(plnFromCny(res.priceCny) * 100) / 100),
       }));
       setScrapeMsg("Dane pobrane — sprawdź i zapisz.");
     } catch {
@@ -960,10 +1076,14 @@ function ProductsTab() {
             </select>
             <input
               className={input}
-              type="number"
+              type="text"
+              inputMode="decimal"
               placeholder="Cena PLN"
               value={form.price}
-              onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+              onChange={(e) => {
+                setCny("");
+                setForm({ ...form, price: e.target.value.replace(",", ".") });
+              }}
             />
             <input
               className={input}
@@ -981,16 +1101,26 @@ function ProductsTab() {
               Cena CNY (¥) — przelicza PLN
               <input
                 className={`${input} mt-1`}
-                type="number"
-                value={Math.round(cnyFromPln(Number(form.price) || 0) * 100) / 100 || ""}
-                onChange={(e) =>
+                type="text"
+                inputMode="decimal"
+                value={
+                  cny !== ""
+                    ? cny
+                    : form.price
+                      ? String(Math.round(cnyFromPln(Number(form.price) || 0) * 100) / 100)
+                      : ""
+                }
+                onChange={(e) => {
+                  const v = e.target.value.replace(",", ".");
+                  setCny(v);
                   setForm({
                     ...form,
-                    price: Math.round(plnFromCny(Number(e.target.value) || 0) * 100) / 100,
-                  })
-                }
+                    price: v === "" ? "" : String(Math.round(plnFromCny(Number(v) || 0) * 100) / 100),
+                  });
+                }}
               />
             </label>
+
             <input
               className={input}
               placeholder="Link do filmu TikTok (opcjonalnie)"
@@ -1167,13 +1297,28 @@ function ProductsTab() {
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-6">
-        <h2 className="mb-4 text-lg font-bold">Wszystkie produkty</h2>
+        <h2 className="mb-1 text-lg font-bold">Wszystkie produkty</h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Przeciągnij kafelek myszką (uchwyt ⠿), aby zmienić kolejność — zapisuje się od razu.
+        </p>
         <ul className="space-y-2">
           {(products ?? []).map((p) => (
             <li
               key={p.id}
-              className="flex items-center gap-3 rounded-lg border border-border bg-secondary p-3"
+              draggable
+              onDragStart={() => setDragId(p.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                void reorder(p.id);
+              }}
+              onDragEnd={() => setDragId(null)}
+              className={`flex cursor-grab items-center gap-3 rounded-lg border bg-secondary p-3 active:cursor-grabbing ${
+                dragId === p.id ? "border-primary opacity-60" : "border-border"
+              }`}
             >
+              <span className="select-none text-base text-muted-foreground">⠿</span>
+
               {p.image_url ? (
                 <img src={p.image_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
               ) : null}
@@ -1212,7 +1357,7 @@ function ProductsTab() {
                     id: p.id,
                     title: p.title,
                     category: p.category,
-                    price: p.price,
+                    price: String(p.price),
                     image_url: p.image_url ?? "",
                     qc_url: p.qc_url ?? "",
                     quality: p.quality,
@@ -1476,6 +1621,14 @@ function GuideTab() {
             value={form.image_url ?? ""}
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           />
+          <ImageUploader
+            urls={form.image_url ? [form.image_url] : []}
+            multiple={false}
+            folder="guide"
+            label="Grafika z urządzenia / galerii"
+            onChange={(u) => setForm({ ...form, image_url: u[0] ?? "" })}
+          />
+
           <div className="flex gap-2">
             <button className={btn} onClick={() => void save()}>
               Zapisz
