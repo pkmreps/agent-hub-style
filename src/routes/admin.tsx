@@ -828,15 +828,17 @@ function AgentsTab() {
               <span className="flex-1 text-sm font-semibold">{a.name}</span>
               <button
                 className={btnGhost}
-                onClick={() =>
+                onClick={() => {
                   setForm({
                     id: a.id,
                     name: a.name,
                     avatar_url: a.avatar_url ?? "",
                     referral_url: a.referral_url,
                     sort_order: a.sort_order,
-                  })
-                }
+                  });
+                  setTemplate(settings?.[`converter_${a.name.trim().toLowerCase()}`] ?? "");
+                }}
+
               >
                 Edytuj
               </button>
