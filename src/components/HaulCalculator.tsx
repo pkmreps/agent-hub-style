@@ -32,6 +32,8 @@ export function HaulCalculator() {
   const cheapest = results[0]?.cost ?? null;
   const pct = ((kg - MIN_KG) / (MAX_KG - MIN_KG)) * 100;
 
+  const clamp = (v: number) => Math.min(MAX_KG, Math.max(MIN_KG, Math.round(v * 2) / 2));
+
   return (
     <section className="rounded-3xl border border-primary/30 bg-surface p-5 sm:p-6">
       <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
@@ -41,18 +43,34 @@ export function HaulCalculator() {
           </p>
           <h2 className="mt-1 text-xl font-black">Ile zapłacisz za wysyłkę haulu?</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Minimum {MIN_KG} kg, maksimum {MAX_KG} kg — co pół kilograma.
+            Minimum {MIN_KG} kg, maksimum {MAX_KG} kg.
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-secondary/60 px-5 py-3 text-center">
-          <p className="font-display text-3xl font-black text-gradient-brand">{kg.toFixed(1)}</p>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-            kilogramy
-          </p>
+        <div className="flex items-center gap-2">
+          <button
+            aria-label="Mniej"
+            onClick={() => setKg((v) => clamp(v - 0.5))}
+            className="h-10 w-10 rounded-xl border border-border text-lg font-bold text-muted-foreground transition-all hover:border-primary hover:text-primary"
+          >
+            −
+          </button>
+          <div className="rounded-2xl border border-primary/40 bg-secondary/60 px-5 py-2 text-center glow-ring">
+            <p className="font-display text-3xl font-black text-gradient-brand">{kg.toFixed(1)}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              kilogramy
+            </p>
+          </div>
+          <button
+            aria-label="Więcej"
+            onClick={() => setKg((v) => clamp(v + 0.5))}
+            className="h-10 w-10 rounded-xl border border-border text-lg font-bold text-muted-foreground transition-all hover:border-primary hover:text-primary"
+          >
+            +
+          </button>
         </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-6">
         <input
           type="range"
           min={MIN_KG}
@@ -61,13 +79,14 @@ export function HaulCalculator() {
           value={kg}
           aria-label="Waga paczki w kg"
           onChange={(e) => setKg(Number(e.target.value))}
-          className="h-2 w-full cursor-pointer appearance-none rounded-full outline-none"
+          className="range-brand w-full cursor-pointer"
           style={{
-            background: `linear-gradient(90deg, var(--brand-cyan, #00f2fe) 0%, var(--brand-teal, #0d9488) ${pct}%, color-mix(in oklab, currentColor 15%, transparent) ${pct}%)`,
+            background: `linear-gradient(90deg, #00f2fe 0%, #0d9488 ${pct}%, rgba(148,163,184,0.18) ${pct}%, rgba(148,163,184,0.18) 100%)`,
           }}
         />
         <div className="mt-2 flex justify-between text-[10px] font-semibold text-muted-foreground">
           <span>{MIN_KG} kg</span>
+          <span>{(MAX_KG / 2).toFixed(1)} kg</span>
           <span>{MAX_KG} kg</span>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -86,6 +105,7 @@ export function HaulCalculator() {
           ))}
         </div>
       </div>
+
 
       {results.length === 0 ? (
         <p className="mt-5 rounded-xl border border-border bg-secondary/50 p-5 text-center text-xs text-muted-foreground">
