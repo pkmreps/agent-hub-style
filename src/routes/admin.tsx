@@ -742,17 +742,23 @@ function ShippingTab() {
 
 function AgentsTab() {
   const { data: agents } = useAgents();
+  const { data: settings } = useSettings();
   const refresh = useRefresh();
   const empty = { name: "", avatar_url: "", referral_url: "", sort_order: 0 };
   const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
+  const [template, setTemplate] = useState("");
 
   const save = async () => {
     if (!form.name) return;
     if (form.id) await supabase.from("agents").update(form).eq("id", form.id);
     else await supabase.from("agents").insert(form);
+    await saveSetting(`converter_${form.name.trim().toLowerCase()}`, template);
     setForm(empty);
+    setTemplate("");
     await refresh("agents");
+    await refresh("settings");
   };
+
 
   return (
     <section className="grid gap-6 lg:grid-cols-2">
