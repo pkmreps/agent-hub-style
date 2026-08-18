@@ -1298,11 +1298,18 @@ function ProductsTab() {
 
       <div className="rounded-2xl border border-border bg-surface p-6">
         <h2 className="mb-1 text-lg font-bold">Wszystkie produkty</h2>
-        <p className="mb-4 text-xs text-muted-foreground">
+        <p className="mb-3 text-xs text-muted-foreground">
           Przeciągnij kafelek myszką (uchwyt ⠿), aby zmienić kolejność — zapisuje się od razu.
         </p>
+        <input
+          className={`${input} mb-4`}
+          placeholder="🔎 Szukaj produktu (nazwa, kategoria, batch, sklep)"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <ul className="space-y-2">
-          {(products ?? []).map((p) => (
+          {visible.map((p) => (
+
             <li
               key={p.id}
               draggable
