@@ -64,14 +64,12 @@ function Index() {
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <section className="mb-8 rounded-3xl border border-border bg-surface/60 p-8 text-center glow-ring">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary">
-          Agent &amp; QC Finds
+          {t("home.kicker")}
         </p>
         <h1 className="mt-3 text-3xl font-black sm:text-5xl">
-          Znajdź swoje <span className="text-gradient-brand">najlepsze findsy</span>
+          {t("home.title1")} <span className="text-gradient-brand">{t("home.title2")}</span>
         </h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
-          Sprawdzone produkty, zdjęcia QC i bezpośrednie linki do zakupu przez Twojego agenta.
-        </p>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">{t("home.subtitle")}</p>
         <div className="mx-auto mt-6 flex max-w-xl gap-2">
           <input
             value={q}
@@ -91,16 +89,15 @@ function Index() {
             🎲
           </span>
           <div>
-            <p className="text-base font-black">Generator outfitów — wylosuj cały zestaw</p>
-            <p className="text-xs text-muted-foreground">
-              Buty, spodnie, góra i akcesoria w jednym losowaniu, z ceną w PLN, USD i CNY.
-            </p>
+            <p className="text-base font-black">{t("home.outfitTitle")}</p>
+            <p className="text-xs text-muted-foreground">{t("home.outfitDesc")}</p>
           </div>
         </div>
         <span className="rounded-lg gradient-brand px-5 py-2.5 text-xs font-extrabold uppercase tracking-wide text-surface-deep transition-transform group-hover:scale-105">
-          Losuj outfit →
+          {t("home.outfitCta")}
         </span>
       </Link>
+
 
 
       <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-end">
