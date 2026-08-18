@@ -1,5 +1,29 @@
 import { useMemo } from "react";
 import { useAgents, useProducts, usePromos, useSellers, useSocialLinks } from "@/lib/store";
+import bbdbuy from "@/assets/stickers/bbdbuy-logo-2.webp.asset.json";
+import ootdbuy from "@/assets/stickers/0x0_4-2.png.asset.json";
+import rizzitgo from "@/assets/stickers/logo-large-_Icw0HdY-2.png.asset.json";
+import gtbuy from "@/assets/stickers/0x0_1-2.png.asset.json";
+import usfans from "@/assets/stickers/unnamed_1-2.png.asset.json";
+import cssbuy from "@/assets/stickers/images-2.png.asset.json";
+import hipobuy from "@/assets/stickers/0x0-2.png.asset.json";
+import litbuy from "@/assets/stickers/litbuy1-bdwW2qsLt48MVVL4-2.avif.asset.json";
+import oopbuy from "@/assets/stickers/unnamed-2.png.asset.json";
+import kakobuy from "@/assets/stickers/0x0-Xl4HETrWr55mfEC9-2.avif.asset.json";
+
+/** Wgrane logotypy agentów — zawsze dostępne jako naklejki w tle. */
+const AGENT_STICKERS = [
+  bbdbuy.url,
+  ootdbuy.url,
+  rizzitgo.url,
+  gtbuy.url,
+  usfans.url,
+  cssbuy.url,
+  hipobuy.url,
+  litbuy.url,
+  oopbuy.url,
+  kakobuy.url,
+];
 
 /** Deterministyczny pseudo-random (bez hydration mismatch). */
 function rand(seed: number) {
