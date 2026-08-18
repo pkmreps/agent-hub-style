@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { safeStorage } from "@/lib/store";
+import { safeStorage, useSettings } from "@/lib/store";
 
 export type Lang = "pl" | "en";
 
-const dict: Record<string, { pl: string; en: string }> = {
+/** Domyślne teksty. Admin może nadpisać każdy z nich w zakładce „Języki”. */
+export const DICT: Record<string, { pl: string; en: string }> = {
   "nav.finder": { pl: "Product Finder", en: "Product Finder" },
   "nav.outfits": { pl: "Losowanie outfitów", en: "Outfit roll" },
   "nav.sellers": { pl: "Sprzedawcy", en: "Stores" },
@@ -18,7 +19,28 @@ const dict: Record<string, { pl: string; en: string }> = {
   "finder.clear": { pl: "Wyczyść filtry", en: "Clear filters" },
   "finder.empty": { pl: "Brak produktów do wyświetlenia.", en: "No products to display." },
   "finder.allCats": { pl: "Wszystkie", en: "All" },
+  "home.kicker": { pl: "Agent & QC Finds", en: "Agent & QC Finds" },
+  "home.title1": { pl: "Znajdź swoje", en: "Find your" },
+  "home.title2": { pl: "najlepsze findsy", en: "best finds" },
+  "home.subtitle": {
+    pl: "Sprawdzone produkty, zdjęcia QC i bezpośrednie linki do zakupu przez Twojego agenta.",
+    en: "Verified products, QC photos and direct buy links through your agent.",
+  },
+  "home.cats": { pl: "Kategorie produktów", en: "Product categories" },
+  "home.outfitTitle": {
+    pl: "Generator outfitów — wylosuj cały zestaw",
+    en: "Outfit generator — roll a full fit",
+  },
+  "home.outfitDesc": {
+    pl: "Buty, spodnie, góra i akcesoria w jednym losowaniu, z ceną w PLN, USD i CNY.",
+    en: "Shoes, pants, top and accessories in one roll, priced in PLN, USD and CNY.",
+  },
+  "home.outfitCta": { pl: "Losuj outfit →", en: "Roll outfit →" },
 };
+
+export const DICT_KEYS = Object.keys(DICT);
+
+export const i18nSettingKey = (lang: Lang, key: string) => `i18n_${lang}_${key}`;
 
 const LangContext = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({
   lang: "pl",
@@ -43,6 +65,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useLang() {
   const { lang, setLang } = useContext(LangContext);
-  const t = (key: string) => dict[key]?.[lang] ?? key;
+  const { data: settings } = useSettings();
+
+  /** Zwraca tekst: nadpisanie z panelu → domyślny słownik → fallback → klucz. */
+  const t = (key: string, fallback?: string) => {
+    const override = settings?.[i18nSettingKey(lang, key)];
+    if (override && override.trim()) return override;
+    return DICT[key]?.[lang] ?? fallback ?? key;
+  };
+
   return { lang, setLang, t };
 }
