@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sellerLogin } from "@/lib/secure.functions";
 import { ProductCard } from "@/components/ProductCard";
 import { ImageUploader } from "@/components/ImageUploader";
 import {
