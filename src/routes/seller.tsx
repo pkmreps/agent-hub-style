@@ -52,16 +52,17 @@ function SellerPage() {
 
   const login = async () => {
     setErr("");
-    const found = (sellers ?? []).find(
-      (s) => s.username.toLowerCase() === user.trim().toLowerCase() && s.active,
-    );
-    if (!found || (await sha256Hex(pass)) !== found.password_hash) {
+    const res = await sellerLogin({
+      data: { username: user.trim(), passwordHash: await sha256Hex(pass) },
+    }).catch(() => ({ ok: false as const }));
+    if (!res.ok || !("sellerId" in res)) {
       setErr("Nieprawidłowe dane logowania.");
       return;
     }
-    safeStorage.set("pkmr_seller", found.id);
-    setSellerId(found.id);
+    safeStorage.set("pkmr_seller", res.sellerId);
+    setSellerId(res.sellerId);
   };
+
 
   if (!seller) {
     return (
