@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useAgents, useProducts, usePromos, useSellers, useSocialLinks } from "@/lib/store";
+import { useAgents } from "@/lib/store";
 import bbdbuy from "@/assets/stickers/bbdbuy-logo-2.webp.asset.json";
 import ootdbuy from "@/assets/stickers/0x0_4-2.png.asset.json";
 import rizzitgo from "@/assets/stickers/logo-large-_Icw0HdY-2.png.asset.json";
@@ -37,20 +37,11 @@ function rand(seed: number) {
  */
 export function StickersBackground() {
   const { data: agents } = useAgents();
-  const { data: socials } = useSocialLinks();
-  const { data: promos } = usePromos();
-  const { data: sellers } = useSellers();
-  const { data: products } = useProducts();
 
   const stickers = useMemo(() => {
-    const raw = [
-      ...AGENT_STICKERS,
-      ...(agents ?? []).map((a) => a.avatar_url),
-      ...(socials ?? []).map((s) => s.image_url),
-      ...(sellers ?? []).map((s) => s.logo_url),
-      ...(promos ?? []).map((p) => p.image_url),
-      ...(products ?? []).map((p) => p.image_url),
-    ].filter((u): u is string => Boolean(u && u.trim()));
+    const raw = [...AGENT_STICKERS, ...(agents ?? []).map((a) => a.avatar_url)].filter(
+      (u): u is string => Boolean(u && u.trim()),
+    );
 
     const unique = Array.from(new Set(raw));
     // Deterministyczne tasowanie, aby układ był stabilny i różnorodny.
@@ -59,7 +50,8 @@ export function StickersBackground() {
       .sort((a, b) => a.k - b.k)
       .map((s) => s.url)
       .slice(0, 22);
-  }, [agents, socials, sellers, promos, products]);
+  }, [agents]);
+
 
   if (!stickers.length) return null;
 

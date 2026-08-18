@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAgents, useGuideSteps, useSettings } from "@/lib/store";
 import { HaulCalculator } from "@/components/HaulCalculator";
-import { convertLink, parseSourceLink } from "@/lib/linkConverter";
+import { convertLink, extractSourceLink } from "@/lib/linkConverter";
 
 export const Route = createFileRoute("/poradnik")({
   head: () => ({
@@ -98,82 +98,78 @@ function QcInspector() {
 function LinkConverter() {
   const { data: agents } = useAgents();
   const { data: settings } = useSettings();
-  const [agent, setAgent] = useState("");
   const [url, setUrl] = useState("");
-  const [out, setOut] = useState("");
-  const [warn, setWarn] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState("");
 
   const list = agents ?? [];
-  const chosen = agent || list[0]?.name || "";
+  const source = extractSourceLink(url);
+  const invalid = url.trim().length > 0 && !source;
 
-  const convert = () => {
-    const raw = url.trim();
-    setWarn("");
-    if (!raw) return setOut("");
-    if (!parseSourceLink(raw)) {
-      setWarn("Nieprawidłowy link — obsługiwane są tylko Weidian, 1688 i Taobao. Link pozostaje bez zmian.");
-      setOut(raw);
-      return;
-    }
-    const template = settings?.[`converter_${chosen.trim().toLowerCase()}`];
-    setOut(convertLink(raw, chosen, template));
-  };
+  const linkFor = (name: string) =>
+    convertLink(source?.url ?? "", name, settings?.[`converter_${name.trim().toLowerCase()}`]);
 
   return (
     <div className={card}>
       <h3 className="text-base font-bold">Link Converter</h3>
       <p className="mt-1 text-xs text-muted-foreground">
-        Wybierz agenta i zamień link 1688 / Taobao / Weidian na link afiliacyjny.
+        Wklej link z 1688 / Taobao / Weidian albo gotowy link agenta (USFANS, Kakobuy, Litbuy…) —
+        zamienimy go na link u wybranego agenta.
       </p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {list.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => setAgent(a.name)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-bold transition-all ${
-              chosen === a.name
-                ? "border-primary text-primary glow-ring"
-                : "border-border text-muted-foreground hover:border-primary"
-            }`}
-          >
-            {a.avatar_url ? (
-              <img src={a.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
-            ) : null}
-            {a.name}
-          </button>
-        ))}
-      </div>
       <input
         className={`${field} mt-3`}
-        placeholder="https://detail.1688.com/offer/123456789.html"
+        placeholder="https://detail.1688.com/offer/123456789.html lub link agenta"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
       />
-      <button className={cta} onClick={convert}>
-        Konwertuj link
-      </button>
-      {warn ? <p className="mt-3 text-[11px] text-destructive">{warn}</p> : null}
-      {out ? (
-        <div className="mt-3 flex items-center gap-2">
-          <p className="flex-1 break-all rounded-lg border border-border bg-secondary px-2 py-1.5 text-[11px] text-brand-cyan">
-            {out}
+
+      {invalid ? (
+        <p className="mt-3 text-[11px] text-destructive">
+          Nie rozpoznano linku produktu — obsługujemy Weidian, 1688, Taobao oraz linki agentów.
+          Oryginalny link pozostaje bez zmian.
+        </p>
+      ) : null}
+
+      {source ? (
+        <>
+          <p className="mt-3 break-all rounded-lg border border-border bg-secondary px-2 py-1.5 text-[11px] text-muted-foreground">
+            Źródło: <span className="text-brand-cyan">{source.url}</span>
           </p>
-          <button
-            className="rounded-lg border border-border px-2 py-1.5 text-[11px] font-semibold hover:border-primary hover:text-primary"
-            onClick={() => {
-              void navigator.clipboard.writeText(out);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            }}
-          >
-            {copied ? "OK" : "Kopiuj"}
-          </button>
-        </div>
+          <div className="mt-3 space-y-2">
+            {list.map((a) => {
+              const out = linkFor(a.name);
+              return (
+                <div key={a.id} className="flex items-center gap-2">
+                  <a
+                    href={out}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex flex-1 items-center gap-2 rounded-lg gradient-brand px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide text-surface-deep transition-transform hover:scale-[1.02]"
+                  >
+                    {a.avatar_url ? (
+                      <img src={a.avatar_url} alt="" className="h-4 w-4 rounded-full object-cover" />
+                    ) : null}
+                    Otwórz w {a.name}
+                  </a>
+                  <button
+                    className="rounded-lg border border-border px-2 py-2 text-[11px] font-semibold hover:border-primary hover:text-primary"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(out);
+                      setCopied(a.id);
+                      setTimeout(() => setCopied(""), 1500);
+                    }}
+                  >
+                    {copied === a.id ? "OK" : "Kopiuj"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
       ) : null}
     </div>
   );
 }
+
 
 
 function PoradnikPage() {

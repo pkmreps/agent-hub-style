@@ -59,6 +59,84 @@ const LITBUY_PLATFORM: Record<SourcePlatform, string> = {
   weidian: "weidian",
 };
 
+/** Buduje kanoniczny link źródłowy z platformy i ID. */
+export function buildSourceUrl(platform: SourcePlatform, id: string): string {
+  if (platform === "weidian") return `https://weidian.com/item.html?itemID=${id}`;
+  if (platform === "taobao") return `https://item.taobao.com/item.htm?id=${id}`;
+  return `https://detail.1688.com/offer/${id}.html`;
+}
+
+const CODE_MAPS: Record<string, Record<string, SourcePlatform>> = {
+  usfans: { "1": "1688", "2": "taobao", "3": "weidian" },
+  litbuy: { "0": "1688", "1": "taobao", weidian: "weidian" },
+  generic: {
+    "0": "1688",
+    "1": "taobao",
+    "2": "weidian",
+    weidian: "weidian",
+    taobao: "taobao",
+    ali_1688: "1688",
+    "1688": "1688",
+  },
+};
+
+/**
+ * Wyciąga link źródłowy (Weidian/1688/Taobao) z dowolnego linku — również z linku
+ * agenta (USFANS, Kakobuy, Litbuy, CNFans, Mulebuy itp.). Zwraca null, gdy się nie da.
+ */
+export function extractSourceLink(raw: string): ParsedLink | null {
+  const direct = parseSourceLink(raw);
+  if (direct) return direct;
+
+  const input = (raw ?? "").trim();
+  if (!input) return null;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(input.startsWith("http") ? input : `https://${input}`);
+  } catch {
+    return null;
+  }
+
+  // 1) Agenci przekazujący pełny link w parametrze (kakobuy, cnfans, mulebuy, hoobuy...)
+  for (const key of ["url", "link", "productLink", "itemUrl", "goodsUrl"]) {
+    const val = parsed.searchParams.get(key);
+    if (val) {
+      const nested = parseSourceLink(decodeURIComponent(val));
+      if (nested) return nested;
+    }
+  }
+
+  // 2) Agenci ze wzorcem /product/{platforma}/{id} lub ?shop_type=&id=
+  const host = parsed.hostname.toLowerCase();
+  const map = host.includes("usfans")
+    ? CODE_MAPS["usfans"]!
+    : host.includes("litbuy")
+      ? CODE_MAPS["litbuy"]!
+      : CODE_MAPS["generic"]!;
+
+  const m = parsed.pathname.match(/\/(?:product|item|goods)\/([a-z0-9_]+)\/(\d+)/i);
+  if (m) {
+    const platform = map[m[1]!.toLowerCase()];
+    if (platform) return { platform, id: m[2]!, url: buildSourceUrl(platform, m[2]!) };
+  }
+
+  const shopType = (
+    parsed.searchParams.get("shop_type") ??
+    parsed.searchParams.get("platform") ??
+    parsed.searchParams.get("channel") ??
+    ""
+  ).toLowerCase();
+  const id = parsed.searchParams.get("id") ?? parsed.searchParams.get("itemID");
+  if (shopType && id && /^\d+$/.test(id)) {
+    const platform = CODE_MAPS["generic"]![shopType];
+    if (platform) return { platform, id, url: buildSourceUrl(platform, id) };
+  }
+
+  return null;
+}
+
+
 function normalizeAgent(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -69,8 +147,9 @@ function normalizeAgent(name: string) {
  */
 export function convertLink(rawUrl: string, agentName: string, template?: string): string {
   const original = (rawUrl ?? "").trim();
-  const parsed = parseSourceLink(original);
+  const parsed = extractSourceLink(original);
   if (!parsed) return original;
+
 
   const agent = normalizeAgent(agentName ?? "");
 

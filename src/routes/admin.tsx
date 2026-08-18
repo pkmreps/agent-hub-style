@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/ProductCard";
 import { ImageUploader } from "@/components/ImageUploader";
 import { scrapeProduct } from "@/lib/scrape.functions";
+import { DICT, DICT_KEYS, i18nSettingKey } from "@/lib/i18n";
 import {
   cnyFromPln,
   plnFromCny,
@@ -61,7 +62,9 @@ function AdminPage() {
     | "sellers"
     | "shipping"
     | "guide"
+    | "lang"
     | "security"
+
   >("branding");
   const { data: settings } = useSettings();
 
@@ -123,7 +126,9 @@ function AdminPage() {
     ["sellers", "Sprzedawcy"],
     ["shipping", "Wysyłki"],
     ["guide", "Poradnik"],
+    ["lang", "Języki"],
     ["security", "Bezpieczeństwo"],
+
   ] as const;
 
   return (
@@ -165,7 +170,9 @@ function AdminPage() {
       {tab === "sellers" && <SellersTab />}
       {tab === "shipping" && <ShippingTab />}
       {tab === "guide" && <GuideTab />}
+      {tab === "lang" && <LangTab />}
       {tab === "security" && <SecurityTab />}
+
     </div>
   );
 }
@@ -955,6 +962,17 @@ function ProductsTab() {
   const [scrapeMsg, setScrapeMsg] = useState("");
   const [cny, setCny] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const q = search.trim().toLowerCase();
+  const visible = (products ?? []).filter((p) =>
+    q
+      ? [p.title, p.category, p.batch, p.store_name].some((v) =>
+          (v ?? "").toLowerCase().includes(q),
+        )
+      : true,
+  );
+
 
   /** Przenieś przeciągany produkt na pozycję produktu docelowego i zapisz kolejność. */
   const reorder = async (targetId: string) => {
@@ -1298,11 +1316,18 @@ function ProductsTab() {
 
       <div className="rounded-2xl border border-border bg-surface p-6">
         <h2 className="mb-1 text-lg font-bold">Wszystkie produkty</h2>
-        <p className="mb-4 text-xs text-muted-foreground">
+        <p className="mb-3 text-xs text-muted-foreground">
           Przeciągnij kafelek myszką (uchwyt ⠿), aby zmienić kolejność — zapisuje się od razu.
         </p>
+        <input
+          className={`${input} mb-4`}
+          placeholder="🔎 Szukaj produktu (nazwa, kategoria, batch, sklep)"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <ul className="space-y-2">
-          {(products ?? []).map((p) => (
+          {visible.map((p) => (
+
             <li
               key={p.id}
               draggable
@@ -1779,6 +1804,79 @@ function SecurityTab() {
           Zapisz dane logowania
         </button>
       </div>
+    </section>
+  );
+}
+
+/** Edytor tekstów PL/EN — nadpisuje domyślny słownik oraz nazwy kategorii. */
+function LangTab() {
+  const { data: settings } = useSettings();
+  const { data: categories } = useCategories();
+  const refresh = useRefresh();
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [msg, setMsg] = useState("");
+
+  const rows: { key: string; label: string; defPl: string; defEn: string }[] = [
+    ...DICT_KEYS.map((k) => ({
+      key: k,
+      label: k,
+      defPl: DICT[k]!.pl,
+      defEn: DICT[k]!.en,
+    })),
+    ...(categories ?? []).map((c) => ({
+      key: `cat.${c.name}`,
+      label: `Kategoria: ${c.name}`,
+      defPl: c.name,
+      defEn: c.name,
+    })),
+  ];
+
+  const valueOf = (lang: "pl" | "en", key: string, fallback: string) => {
+    const sk = i18nSettingKey(lang, key);
+    return draft[sk] ?? settings?.[sk] ?? fallback;
+  };
+
+  const saveAll = async () => {
+    setMsg("Zapisuję...");
+    await Promise.all(Object.entries(draft).map(([k, v]) => saveSetting(k, v)));
+    setDraft({});
+    await refresh("settings");
+    setMsg("Zapisano tłumaczenia.");
+  };
+
+  return (
+    <section className="rounded-2xl border border-border bg-surface p-6">
+      <h2 className="mb-1 text-lg font-bold">Języki (PL / EN)</h2>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Ustaw własne teksty dla obu wersji językowych — nagłówki, nawigacja i nazwy kategorii.
+      </p>
+      <div className="space-y-3">
+        {rows.map((r) => (
+          <div key={r.key} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr] sm:items-center">
+            <span className="text-[11px] font-semibold text-muted-foreground">{r.label}</span>
+            <input
+              className={input}
+              placeholder="Polski"
+              value={valueOf("pl", r.key, r.defPl)}
+              onChange={(e) =>
+                setDraft({ ...draft, [i18nSettingKey("pl", r.key)]: e.target.value })
+              }
+            />
+            <input
+              className={input}
+              placeholder="English"
+              value={valueOf("en", r.key, r.defEn)}
+              onChange={(e) =>
+                setDraft({ ...draft, [i18nSettingKey("en", r.key)]: e.target.value })
+              }
+            />
+          </div>
+        ))}
+      </div>
+      {msg ? <p className="mt-3 text-xs text-brand-cyan">{msg}</p> : null}
+      <button className={`${btn} mt-5`} onClick={() => void saveAll()}>
+        Zapisz teksty
+      </button>
     </section>
   );
 }
