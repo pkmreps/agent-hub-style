@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAgents, useGuideSteps, useSettings } from "@/lib/store";
 import { HaulCalculator } from "@/components/HaulCalculator";
-import { convertLink, parseSourceLink } from "@/lib/linkConverter";
+import { convertLink, extractSourceLink } from "@/lib/linkConverter";
 
 export const Route = createFileRoute("/poradnik")({
   head: () => ({
