@@ -44,6 +44,7 @@ export function StickersBackground() {
 
   const stickers = useMemo(() => {
     const raw = [
+      ...AGENT_STICKERS,
       ...(agents ?? []).map((a) => a.avatar_url),
       ...(socials ?? []).map((s) => s.image_url),
       ...(sellers ?? []).map((s) => s.logo_url),
