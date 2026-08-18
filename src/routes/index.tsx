@@ -155,7 +155,7 @@ function Index() {
             onClick={() => setCat(c.name)}
             className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${cat === c.name ? "border-primary text-primary glow-ring" : "border-border text-muted-foreground"}`}
           >
-            {c.name} ({counts[c.name] ?? 0})
+            {t(`cat.${c.name}`, c.name)} ({counts[c.name] ?? 0})
           </button>
         ))}
       </div>
