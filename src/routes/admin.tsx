@@ -61,7 +61,9 @@ function AdminPage() {
     | "sellers"
     | "shipping"
     | "guide"
+    | "lang"
     | "security"
+
   >("branding");
   const { data: settings } = useSettings();
 
