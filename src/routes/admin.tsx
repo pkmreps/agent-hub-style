@@ -125,7 +125,9 @@ function AdminPage() {
     ["sellers", "Sprzedawcy"],
     ["shipping", "Wysyłki"],
     ["guide", "Poradnik"],
+    ["lang", "Języki"],
     ["security", "Bezpieczeństwo"],
+
   ] as const;
 
   return (
