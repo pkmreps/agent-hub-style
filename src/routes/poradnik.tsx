@@ -122,7 +122,7 @@ function LinkConverter() {
 
   return (
     <div className={card}>
-      <h3 className="text-base font-bold">🔗 Smart Link Converter</h3>
+      <h3 className="text-base font-bold">Link Converter</h3>
       <p className="mt-1 text-xs text-muted-foreground">
         Wybierz agenta i zamień link 1688 / Taobao / Weidian na link afiliacyjny.
       </p>
@@ -153,6 +153,7 @@ function LinkConverter() {
       <button className={cta} onClick={convert}>
         Konwertuj link
       </button>
+      {warn ? <p className="mt-3 text-[11px] text-destructive">{warn}</p> : null}
       {out ? (
         <div className="mt-3 flex items-center gap-2">
           <p className="flex-1 break-all rounded-lg border border-border bg-secondary px-2 py-1.5 text-[11px] text-brand-cyan">
