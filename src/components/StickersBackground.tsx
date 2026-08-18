@@ -1,0 +1,72 @@
+import { useMemo } from "react";
+import { useAgents, useProducts, usePromos, useSellers, useSocialLinks } from "@/lib/store";
+
+/** Deterministyczny pseudo-random (bez hydration mismatch). */
+function rand(seed: number) {
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * Tło z rozproszonych naklejek zbudowanych z grafik wgranych w panelu admina.
+ * Brak powtórzeń sąsiadujących: lista jest unikalna i przetasowana deterministycznie.
+ */
+export function StickersBackground() {
+  const { data: agents } = useAgents();
+  const { data: socials } = useSocialLinks();
+  const { data: promos } = usePromos();
+  const { data: sellers } = useSellers();
+  const { data: products } = useProducts();
+
+  const stickers = useMemo(() => {
+    const raw = [
+      ...(agents ?? []).map((a) => a.avatar_url),
+      ...(socials ?? []).map((s) => s.image_url),
+      ...(sellers ?? []).map((s) => s.logo_url),
+      ...(promos ?? []).map((p) => p.image_url),
+      ...(products ?? []).map((p) => p.image_url),
+    ].filter((u): u is string => Boolean(u && u.trim()));
+
+    const unique = Array.from(new Set(raw));
+    // Deterministyczne tasowanie, aby układ był stabilny i różnorodny.
+    return unique
+      .map((url, i) => ({ url, k: rand(i + 1) }))
+      .sort((a, b) => a.k - b.k)
+      .map((s) => s.url)
+      .slice(0, 22);
+  }, [agents, socials, sellers, promos, products]);
+
+  if (!stickers.length) return null;
+
+  const cols = 4;
+
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      {stickers.map((url, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const left = (col / cols) * 100 + rand(i * 3 + 1) * 14 + 2;
+        const top = row * 18 + rand(i * 5 + 2) * 10;
+        const rotate = rand(i * 7 + 3) > 0.45 ? Math.round((rand(i * 11 + 4) - 0.5) * 44) : 0;
+        const size = 64 + Math.round(rand(i * 13 + 5) * 72);
+        return (
+          <img
+            key={`${url}-${i}`}
+            src={url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            style={{
+              left: `${Math.min(left, 88)}%`,
+              top: `${top}%`,
+              width: size,
+              height: size,
+              transform: `rotate(${rotate}deg)`,
+            }}
+            className="absolute select-none rounded-2xl object-contain opacity-[0.06] blur-[0.3px]"
+          />
+        );
+      })}
+    </div>
+  );
+}
