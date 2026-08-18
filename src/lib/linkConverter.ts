@@ -147,8 +147,9 @@ function normalizeAgent(name: string) {
  */
 export function convertLink(rawUrl: string, agentName: string, template?: string): string {
   const original = (rawUrl ?? "").trim();
-  const parsed = parseSourceLink(original);
+  const parsed = extractSourceLink(original);
   if (!parsed) return original;
+
 
   const agent = normalizeAgent(agentName ?? "");
 
