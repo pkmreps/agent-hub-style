@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useAgents, useProducts, usePromos, useSellers, useSocialLinks } from "@/lib/store";
+import { useAgents } from "@/lib/store";
 import bbdbuy from "@/assets/stickers/bbdbuy-logo-2.webp.asset.json";
 import ootdbuy from "@/assets/stickers/0x0_4-2.png.asset.json";
 import rizzitgo from "@/assets/stickers/logo-large-_Icw0HdY-2.png.asset.json";
