@@ -169,7 +169,9 @@ function AdminPage() {
       {tab === "sellers" && <SellersTab />}
       {tab === "shipping" && <ShippingTab />}
       {tab === "guide" && <GuideTab />}
+      {tab === "lang" && <LangTab />}
       {tab === "security" && <SecurityTab />}
+
     </div>
   );
 }
