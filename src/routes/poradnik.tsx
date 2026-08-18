@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAgents, useGuideSteps, useSettings } from "@/lib/store";
 import { HaulCalculator } from "@/components/HaulCalculator";
+import { convertLink, parseSourceLink } from "@/lib/linkConverter";
 
 export const Route = createFileRoute("/poradnik")({
   head: () => ({
@@ -100,6 +101,7 @@ function LinkConverter() {
   const [agent, setAgent] = useState("");
   const [url, setUrl] = useState("");
   const [out, setOut] = useState("");
+  const [warn, setWarn] = useState("");
   const [copied, setCopied] = useState(false);
 
   const list = agents ?? [];
@@ -107,23 +109,20 @@ function LinkConverter() {
 
   const convert = () => {
     const raw = url.trim();
+    setWarn("");
     if (!raw) return setOut("");
-    const id = raw.match(/(?:id=)(\d+)/)?.[1] ?? raw.match(/(\d{6,})/)?.[1] ?? "";
-    const platform = /1688/.test(raw) ? "ali_1688" : /taobao|tmall/.test(raw) ? "taobao" : "weidian";
-    if (!id) return setOut("Nie rozpoznano ID produktu w linku.");
-    const template = settings?.[`converter_${chosen.trim().toLowerCase()}`];
-    if (template) {
-      setOut(template.replaceAll("{platform}", platform).replaceAll("{id}", id));
+    if (!parseSourceLink(raw)) {
+      setWarn("Nieprawidłowy link — obsługiwane są tylko Weidian, 1688 i Taobao. Link pozostaje bez zmian.");
+      setOut(raw);
       return;
     }
-    setOut(
-      `https://${chosen.toLowerCase().replace(/\s+/g, "")}.com/product?platform=${platform}&id=${id}`,
-    );
+    const template = settings?.[`converter_${chosen.trim().toLowerCase()}`];
+    setOut(convertLink(raw, chosen, template));
   };
 
   return (
     <div className={card}>
-      <h3 className="text-base font-bold">🔗 Smart Link Converter</h3>
+      <h3 className="text-base font-bold">Link Converter</h3>
       <p className="mt-1 text-xs text-muted-foreground">
         Wybierz agenta i zamień link 1688 / Taobao / Weidian na link afiliacyjny.
       </p>
@@ -154,6 +153,7 @@ function LinkConverter() {
       <button className={cta} onClick={convert}>
         Konwertuj link
       </button>
+      {warn ? <p className="mt-3 text-[11px] text-destructive">{warn}</p> : null}
       {out ? (
         <div className="mt-3 flex items-center gap-2">
           <p className="flex-1 break-all rounded-lg border border-border bg-secondary px-2 py-1.5 text-[11px] text-brand-cyan">

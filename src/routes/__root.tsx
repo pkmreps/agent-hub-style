@@ -16,6 +16,7 @@ import { Header } from "@/components/Header";
 import { FloatingIsland } from "@/components/FloatingIsland";
 import { PromoModal } from "@/components/PromoModal";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { StickersBackground } from "@/components/StickersBackground";
 import { LanguageProvider } from "@/lib/i18n";
 
 
@@ -139,7 +140,8 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <div className="min-h-screen">
+        <div className="relative min-h-screen">
+          {!isPanel && <StickersBackground />}
           {!isPanel && <Header />}
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
