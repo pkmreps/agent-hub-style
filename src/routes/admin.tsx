@@ -955,6 +955,17 @@ function ProductsTab() {
   const [scrapeMsg, setScrapeMsg] = useState("");
   const [cny, setCny] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const q = search.trim().toLowerCase();
+  const visible = (products ?? []).filter((p) =>
+    q
+      ? [p.title, p.category, p.batch, p.store_name].some((v) =>
+          (v ?? "").toLowerCase().includes(q),
+        )
+      : true,
+  );
+
 
   /** Przenieś przeciągany produkt na pozycję produktu docelowego i zapisz kolejność. */
   const reorder = async (targetId: string) => {
